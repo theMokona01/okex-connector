@@ -18,12 +18,12 @@ public class LMAXConnector implements ExchangeConnector {
 
     @Override
     public void DoInitConnector() {
-
+        System.out.println("Connector bean initialization");
     }
 
     @Override
     public void DestroyConnector() {
-
+        System.out.println("Connector bean destroy");
     }
 
     public LMAXConnector(String url, String login, String password) {
@@ -45,11 +45,12 @@ public class LMAXConnector implements ExchangeConnector {
                 try {
                     String url = Credentials.getString("url");
                     String username = Credentials.getString("login");
-                    String password = Credentials.getString("username");
+                    String password = Credentials.getString("password");
                     LmaxApi lmaxApiAccount = new LmaxApi(url);
 
                     //Initializaion of instruments - need in BEANs
                     LMAXInstrument InitInstrument = new LMAXInstrument();
+                    InitInstrument.ExchangeSymbol="4001";
                     List<Instrument> InstrumentList = new ArrayList<>();
                     InstrumentList.add(InitInstrument);
 

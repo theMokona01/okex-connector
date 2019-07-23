@@ -1,5 +1,6 @@
 package external;
 
+import classes.LMAXInstrument;
 import com.lmax.api.*;
 import com.lmax.api.account.AccountStateEvent;
 import com.lmax.api.account.AccountStateEventListener;
@@ -68,7 +69,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
 
         for(Instrument instrument : this.InstrumentList) {
-            subscribeToInstrument(session, Long.parseLong(instrument.ExchangeSymbol));
+            subscribeToInstrument(session, Long.parseLong(instrument.GetExchangeSymbol()));
         }
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable()
         {
