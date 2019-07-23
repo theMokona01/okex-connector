@@ -3,7 +3,6 @@ package Exchange;
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
 import com.lmax.api.account.LoginRequest;
-import Exchange.external.PFTLMAXEventsClient;
 import interfaces.ExchangeConnector;
 import interfaces.Instrument;
 import interfaces.Order;
@@ -57,7 +56,9 @@ public class LMAXConnector implements ExchangeConnector {
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
                     Connector = new PFTLMAXEventsClient(InstrumentList);
-                    lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);
+                    //this need run in CoreThread
+                    new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
+                    //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);
 
                 }catch (Exception e){
                     e.printStackTrace();
