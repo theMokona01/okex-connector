@@ -1,6 +1,5 @@
-package external;
+package Exchange.external;
 
-import classes.LMAXInstrument;
 import com.lmax.api.*;
 import com.lmax.api.account.AccountStateEvent;
 import com.lmax.api.account.AccountStateEventListener;
@@ -24,8 +23,6 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 

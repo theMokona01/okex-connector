@@ -10,10 +10,11 @@
         <context:property-placeholder location="classpath:lmax.properties" />
 
         <bean id="ExchangeConnector"
-              class="classes.LMAXConnector">
+              class="Exchange.LMAXConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
             <constructor-arg name="url" value="${LMAX.Credentials.url}"/>
             <constructor-arg name="login" value="${LMAX.Credentials.login}"/>
             <constructor-arg name="password" value="${LMAX.Credentials.password}"/>
+
         </bean>
 
 </beans>

@@ -1,9 +1,9 @@
-package classes;
+package Exchange;
 
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
 import com.lmax.api.account.LoginRequest;
-import external.PFTLMAXEventsClient;
+import Exchange.external.PFTLMAXEventsClient;
 import interfaces.ExchangeConnector;
 import interfaces.Instrument;
 import interfaces.Order;
