@@ -17,6 +17,28 @@ public class LMAXConnector implements ExchangeConnector {
     private PFTLMAXEventsClient Connector;
 
     @Override
+    public void DoInitConnector() {
+
+    }
+
+    @Override
+    public void DestroyConnector() {
+
+    }
+
+    public LMAXConnector(String url, String login, String password) {
+        try {
+            JSONObject Credentials = new JSONObject()
+                    .put("url", url)
+                    .put("login", login)
+                    .put("password", password);
+            InitConnector(Credentials);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public ExchangeConnector InitConnector(JSONObject Credentials) {
         try {
             if (Credentials.has("url") && Credentials.has("login") && Credentials.has("password")) {
