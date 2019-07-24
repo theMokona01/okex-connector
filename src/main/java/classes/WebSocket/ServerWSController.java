@@ -9,9 +9,9 @@ import org.springframework.web.util.HtmlUtils;
 public class ServerWSController {
     @MessageMapping("/hello")
     @SendTo("/topic/greetings")
-    public Greeting greeting(SubscriptionMessage message) throws Exception {
+    public WSGreeting greeting(SubscriptionMessage message) throws Exception {
         Thread.sleep(1000); // simulated delay
-        return new Greeting("Subscription: " + HtmlUtils.htmlEscape(message.getSubscription_name()) + "!");
+        return new WSGreeting("Subscription: " + HtmlUtils.htmlEscape(message.getSubscription_name()) + "!");
     }
 
 }
