@@ -1,4 +1,4 @@
-package classes;
+package classes.Enums;
 
 public enum CustomOrderParams {
     POST_ONLY,
