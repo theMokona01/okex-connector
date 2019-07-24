@@ -2,13 +2,10 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:websocket="http://www.springframework.org/schema/websocket"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context
-        http://www.springframework.org/schema/context/spring-context.xsd
-        http://www.springframework.org/schema/websocket
-		https://www.springframework.org/schema/websocket/spring-websocket.xsd"
+        http://www.springframework.org/schema/context/spring-context.xsd"
 
 >
         <context:property-placeholder location="classpath:lmax.properties" />
@@ -20,11 +17,14 @@
             <constructor-arg name="password" value="${LMAX.Credentials.password}"/>
         </bean>
 
-        <bean id="ClientWSHandler" class="classes.WebSocket.ClientWebsocketHandler"/>
+        <!---<bean id="ClientWSHandler" class="classes.WebSocket.ClientWebsocketHandler"/>
 
         <websocket:handlers>
             <websocket:mapping path="${WEBSOCKET.endpoint.market}" handler="ClientWSHandler"/>
+            <websocket:handshake-interceptors>
+                <bean class="org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor"/>
+            </websocket:handshake-interceptors>
+        </websocket:handlers>-->
 
-        </websocket:handlers>
 
 </beans>
