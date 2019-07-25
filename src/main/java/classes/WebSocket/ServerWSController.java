@@ -18,34 +18,25 @@ import java.util.Map;
 
 @Controller
 public class ServerWSController {
+    static final String PricesSendPoint = "/rcv/prices";
+
     @Autowired
     private SimpMessageSendingOperations messagingTemplate;
-
-
-    private Gson gson = new Gson();
-
-    /*@MessageMapping("/gate")
-    @SendTo("/topic/greetings")
-    public WSGreeting greeting(@org.jetbrains.annotations.NotNull SubscriptionMessage message) throws Exception {
-        System.out.println("OK "+message.toString());
-        Thread.sleep(1000); // simulated delay
-        return new WSGreeting("Subscription: " + HtmlUtils.htmlEscape(message.getSubscription_name()) + "!");
-    }*/
-    //@Scheduled(fixedRate = 1)
-    @MessageMapping("/greeting")
-    @SendTo("/topic/greetings")
-    public WSGreeting greeting(@Payload String message) throws Exception {
-        System.out.println("inside greeting "+message.toString());
-        //System.out.println("OK "+message.toString());
-        //messagingTemplate.convertAndSend("/topic/greetings","OQQ");
-        return new WSGreeting("Hello sub send "+message);//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
+    public void SendPricePointMessage(WSPrices message){
+        messagingTemplate.convertAndSend(PricesSendPoint,message);
     }
 
-    @SubscribeMapping("/topic/greetings")
-    public WSGreeting subscripe_greetings() {
+    @MessageMapping("/pricepoint")
+    @SendTo(PricesSendPoint)
+    public WSPrices pricesMsgDog(@Payload String message) throws Exception {
+        System.out.println("inside /pricepoint message "+message.toString());
+        return new WSPrices("Hello sub send "+message);//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
+    }
+
+    @SubscribeMapping(PricesSendPoint)
+    public WSPrices subscripe_greetings() {
         System.out.println("inside subscribe_greetings");
-        //return "Done subs";
-        return new WSGreeting("Subscribed to /topic/greetings");
+        return new WSPrices("Subscribed to /rcv/prices");
     }
 
 

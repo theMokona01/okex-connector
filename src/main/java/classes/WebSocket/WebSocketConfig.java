@@ -23,13 +23,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
-        config.setApplicationDestinationPrefixes("/app");
+        config.enableSimpleBroker("/rcv");
+        config.setApplicationDestinationPrefixes("/watchdog");
     }
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         RequestUpgradeStrategy upgradeStrategy = new TomcatRequestUpgradeStrategy();
-        registry.addEndpoint("/greeting").setHandshakeHandler(new DefaultHandshakeHandler(upgradeStrategy))
+        registry.addEndpoint("/gateway").setHandshakeHandler(new DefaultHandshakeHandler(upgradeStrategy))
                 .setAllowedOrigins("*");
         System.out.println("Registered");
     }

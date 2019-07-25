@@ -1,10 +1,10 @@
 package classes.WebSocket;
 
-public class WSGreeting {
-    private String content;
-    public WSGreeting() {
+public class WSPrices {
+    private String content="Initial content";
+    public WSPrices() {
     }
-    public WSGreeting(String content) {
+    public WSPrices(String content) {
         this.content = content;
     }
     public String getContent() {
