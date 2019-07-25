@@ -27,14 +27,14 @@ public class ConnectorCore {
         Arrays.sort(beans);
         System.out.println("Loaded beans ");
         for (String bean : beans) {
-            System.out.println("Bean :"+bean);
+            //System.out.println("Bean :"+bean);
         }
 
         //Initialize Exchange connection
-        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
+        /*ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
                 "applicationContext.xml"
         );
-        context.close();
+        context.close();*/
 
 
     }
