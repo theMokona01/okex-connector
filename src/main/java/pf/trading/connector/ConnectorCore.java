@@ -2,10 +2,9 @@ package pf.trading.connector;
 
 import classes.WebSocket.ServerWSApplication;
 import classes.WebSocket.ServerWSController;
-import classes.WebSocket.WSPrices;
+import classes.WebSocket.messages.PricesMessage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +29,7 @@ public class ConnectorCore {
         System.out.println("Loaded beans ");
         ServerWSController RelationWSController = (ServerWSController)WSAppContext.getBean("serverWSController");
         while(true) {
-            RelationWSController.SendPricePointMessage(new WSPrices());
+            RelationWSController.SendPricePointMessage(new PricesMessage());
             try{
             Thread.sleep(1000);}catch (Exception e){}
         }
