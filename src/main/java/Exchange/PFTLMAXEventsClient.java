@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
@@ -44,6 +46,8 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private MessageEndPoint endpoints = new MessageEndPoint();
     private ServerWSController wsController = null;
     private BBOMessage currentBBOMessage = new BBOMessage();
+
+    private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
 
     public PFTLMAXEventsClient(List<Instrument> InstrumentList){
         this.Exchange = Exchange;
@@ -150,20 +154,26 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     {
         double Ask = 0;
         double Bid = 0;
+        double Ask_Size = 0;
+        double Bid_Size = 0;
         List<PricePoint> Asks=orderBookEvent.getAskPrices();
         List<PricePoint> Bids=orderBookEvent.getBidPrices();
         if(Asks.size()>0){
             Ask = Double.parseDouble(Asks.get(0).getPrice().toString());
+            Ask_Size = Double.parseDouble(Asks.get(0).getQuantity().toString());
         }
         if(Bids.size()>0){
             Bid = Double.parseDouble(Bids.get(0).getPrice().toString());
+            Bid_Size = Double.parseDouble(Bids.get(0).getQuantity().toString());
         }
         long instrument_id = orderBookEvent.getInstrumentId();
         String message = String.valueOf(instrument_id)+", ask: "+String.valueOf(Ask)+", bid: "+String.valueOf(Bid);
         //System.out.println(this.wsController.toString());
-        System.out.println("New BBO Message");
+        trclog.log(Level.INFO,orderBookEvent.toString());
         currentBBOMessage.setAsk(Ask);
         currentBBOMessage.setBid(Bid);
+        currentBBOMessage.setAsk_size(Ask_Size);
+        currentBBOMessage.setBid_size(Bid_Size);
         currentBBOMessage.setInstrument(String.valueOf(instrument_id));
         currentBBOMessage.setTimestamp(orderBookEvent.getTimeStamp());
         wsController.SendBBOPointMessage(currentBBOMessage);

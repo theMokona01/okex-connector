@@ -55,11 +55,20 @@ public class LMAXConnector implements ExchangeConnector {
                     InitInstrument2.ExchangeSymbol="5003";
                     LMAXInstrument InitInstrument3 = new LMAXInstrument();
                     InitInstrument3.ExchangeSymbol="5004";
+                    LMAXInstrument InitInstrument4 = new LMAXInstrument();
+                    InitInstrument4.ExchangeSymbol="5005";
+                    LMAXInstrument InitInstrument5 = new LMAXInstrument();
+                    InitInstrument5.ExchangeSymbol="5006";
+                    LMAXInstrument InitInstrument6 = new LMAXInstrument();
+                    InitInstrument6.ExchangeSymbol="5013";
 
                     List<Instrument> InstrumentList = new ArrayList<>();
                     InstrumentList.add(InitInstrument);
                     InstrumentList.add(InitInstrument2);
                     InstrumentList.add(InitInstrument3);
+                    InstrumentList.add(InitInstrument4);
+                    InstrumentList.add(InitInstrument5);
+                    InstrumentList.add(InitInstrument6);
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
