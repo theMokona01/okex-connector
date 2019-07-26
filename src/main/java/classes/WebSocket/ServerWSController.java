@@ -26,7 +26,7 @@ public class ServerWSController {
     @SendTo(PricesSendPoint)
     public BBOMessage pricesMsgDog(@Payload String message) throws Exception {
         System.out.println("inside /pricepoint message "+message.toString());
-        return new BBOMessage("Hello sub send "+message);//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
+        return new BBOMessage();//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
     }
 
     @MessageMapping("/hello")
@@ -39,7 +39,7 @@ public class ServerWSController {
     @SubscribeMapping(PricesSendPoint)
     public BBOMessage subscripe_greetings() {
         System.out.println("inside subscribe_greetings");
-        return new BBOMessage("Subscribed to /rcv/bbo");
+        return new BBOMessage();
     }
 
 
