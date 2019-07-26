@@ -3,6 +3,7 @@ package classes.WebSocket;
 import classes.WebSocket.messages.BBOMessage;
 import classes.WebSocket.messages.InfoMessage;
 import com.google.gson.Gson;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -42,5 +43,9 @@ public class ServerWSController {
         return new BBOMessage();
     }
 
+    @Override
+    public String toString(){
+        return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    }
 
 }

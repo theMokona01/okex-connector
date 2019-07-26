@@ -1,5 +1,8 @@
 package Exchange;
 
+import classes.WebSocket.ServerWSController;
+import classes.WebSocket.messages.BBOMessage;
+import classes.WebSocket.messages.MessageEndPoint;
 import com.lmax.api.*;
 import com.lmax.api.account.AccountStateEvent;
 import com.lmax.api.account.AccountStateEventListener;
@@ -38,10 +41,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private Session currentSession;
     public HashMap<String, HashMap<String, JSONObject>> OrdersStateMap = new HashMap<String, HashMap<String, JSONObject>>();
 
+    private MessageEndPoint endpoints = new MessageEndPoint();
+    private ServerWSController wsController = null;
+    private BBOMessage currentBBOMessage = new BBOMessage();
 
     public PFTLMAXEventsClient(List<Instrument> InstrumentList){
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
+    }
+
+    public void setWsController(ServerWSController wsController) {
+        this.wsController = wsController;
     }
 
     public Session getLmaxSession(){
@@ -75,12 +85,12 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             {
                 try
                 {
-                    boolean wait_prices = true;
-                    System.out.println("Sending snapshot");
+                    //boolean wait_prices = true;
+                    //System.out.println("Sending snapshot");
                     //while (wait_prices)
                     //{
                     //    SendToClients("ordersnapshot",OrdersStateMap.toString());
-                        Thread.sleep(2000);
+                    //    Thread.sleep(2000);
                     //}
                 }
                 catch (Exception e)
@@ -150,7 +160,13 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         }
         long instrument_id = orderBookEvent.getInstrumentId();
         String message = String.valueOf(instrument_id)+", ask: "+String.valueOf(Ask)+", bid: "+String.valueOf(Bid);
-
+        //System.out.println(this.wsController.toString());
+        System.out.println("New BBO Message");
+        currentBBOMessage.setAsk(Ask);
+        currentBBOMessage.setBid(Bid);
+        currentBBOMessage.setInstrument(String.valueOf(instrument_id));
+        currentBBOMessage.setTimestamp(orderBookEvent.getTimeStamp());
+        wsController.SendBBOPointMessage(currentBBOMessage);
     }
 
     @Override

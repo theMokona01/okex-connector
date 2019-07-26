@@ -1,5 +1,6 @@
 package Exchange;
 
+import classes.WebSocket.ServerWSController;
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
 import com.lmax.api.account.LoginRequest;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LMAXConnector implements ExchangeConnector {
-    private PFTLMAXEventsClient Connector;
+    public PFTLMAXEventsClient Connector;
 
     @Override
     public void DoInitConnector() {
@@ -49,9 +50,16 @@ public class LMAXConnector implements ExchangeConnector {
 
                     //Initializaion of instruments - need in BEANs
                     LMAXInstrument InitInstrument = new LMAXInstrument();
-                    InitInstrument.ExchangeSymbol="4001";
+                    InitInstrument.ExchangeSymbol="5002";
+                    LMAXInstrument InitInstrument2 = new LMAXInstrument();
+                    InitInstrument2.ExchangeSymbol="5003";
+                    LMAXInstrument InitInstrument3 = new LMAXInstrument();
+                    InitInstrument3.ExchangeSymbol="5004";
+
                     List<Instrument> InstrumentList = new ArrayList<>();
                     InstrumentList.add(InitInstrument);
+                    InstrumentList.add(InitInstrument2);
+                    InstrumentList.add(InitInstrument3);
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");

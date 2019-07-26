@@ -1,10 +1,12 @@
 package pf.trading.connector;
 
+import Exchange.LMAXConnector;
 import classes.WebSocket.ServerWSApplication;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,16 +34,20 @@ public class ConnectorCore {
             RelationWSController.SendBBOPointMessage(new BBOMessage());
             try{
             Thread.sleep(1000);}catch (Exception e){}
+            break;
         }
         //for (String bean : beans) {
             //System.out.println("Bean :"+bean);
         //}
 
         //Initialize Exchange connection
-        /*ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
                 "applicationContext.xml"
         );
-        context.close();*/
+
+        LMAXConnector lmaxConnector = (LMAXConnector) context.getBean("ExchangeConnector");
+        lmaxConnector.Connector.setWsController(RelationWSController);
+        //context.close();
 
 
     }
