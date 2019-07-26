@@ -1,9 +1,9 @@
 package classes.WebSocket.messages;
 
-public class HelloMessage {
+public class InfoMessage {
     private String content="Hello";
-    public HelloMessage() {}
-    public HelloMessage(String content) {
+    public InfoMessage() {}
+    public InfoMessage(String content) {
         this.content = content;
     }
     public String getContent() {

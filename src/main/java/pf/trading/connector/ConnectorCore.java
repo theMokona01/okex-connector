@@ -2,7 +2,7 @@ package pf.trading.connector;
 
 import classes.WebSocket.ServerWSApplication;
 import classes.WebSocket.ServerWSController;
-import classes.WebSocket.messages.PricesMessage;
+import classes.WebSocket.messages.BBOMessage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 
@@ -29,7 +29,7 @@ public class ConnectorCore {
         System.out.println("Loaded beans ");
         ServerWSController RelationWSController = (ServerWSController)WSAppContext.getBean("serverWSController");
         while(true) {
-            RelationWSController.SendPricePointMessage(new PricesMessage());
+            RelationWSController.SendBBOPointMessage(new BBOMessage());
             try{
             Thread.sleep(1000);}catch (Exception e){}
         }
