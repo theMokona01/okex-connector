@@ -4,15 +4,23 @@ import classes.Enums.Commands;
 import classes.Enums.OrderCommand;
 import classes.trading.Order;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.json.JSONObject;
 
 public class CommandMessage {
     private String command;
-    //private String command2;
+    private String command2;
 
 
     public CommandMessage(String command) {
-        this.command = command;
-        //this.command2 = command2;
+        try {
+            JSONObject cmd = new JSONObject(command);
+            this.command = cmd.getString("command");
+            this.command2 = cmd.getString("command2");
+            //this.command = command;
+            //this.command2 = command2;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     public String getCommand() {

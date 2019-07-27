@@ -70,7 +70,7 @@ public class ServerWSController {
     @SendTo(InfoSendPoint)
     public InfoMessage commandMsgDog(Message<CommandMessage> message) throws Exception {
         //CommandMessage cmdMsg = message.getPayload().getClass().toString();
-        trclog.log(Level.INFO,"Received on point /command: "+message.getPayload().getCommand());
+        trclog.log(Level.INFO,"Received on point /command: "+message.getPayload().toString());
         return new InfoMessage("Command accepted "+message.toString());
     }
 

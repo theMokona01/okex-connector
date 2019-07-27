@@ -113,6 +113,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notifySessionDisconnected()
     {
+        trclog.log(Level.WARNING,"Session disconnected");
         /*System.out.println("notifySessionDisconnected");
         Runnable LmaxRunner = new PfLmax("Profluent", "Il&09IsHA!KbbeR%", "https://trade.lmaxtrader.com/", "LMAX",InstrumentList); // or an anonymous class, or lambda...
         Thread LmaxThread = new Thread(LmaxRunner);
