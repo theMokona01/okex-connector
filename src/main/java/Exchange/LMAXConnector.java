@@ -15,6 +15,7 @@ import java.util.List;
 
 public class LMAXConnector implements ExchangeConnector {
     public PFTLMAXEventsClient Connector;
+    private String Exchange;
 
     @Override
     public void DoInitConnector() {
@@ -26,12 +27,13 @@ public class LMAXConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public LMAXConnector(String url, String login, String password) {
+    public LMAXConnector(String url, String login, String password, String Exchange) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
                     .put("login", login)
                     .put("password", password);
+            this.Exchange=Exchange;
             InitConnector(Credentials);
         }catch (Exception e){
             e.printStackTrace();
@@ -72,7 +74,7 @@ public class LMAXConnector implements ExchangeConnector {
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
-                    Connector = new PFTLMAXEventsClient(InstrumentList);
+                    Connector = new PFTLMAXEventsClient(InstrumentList,this.Exchange);
                     //this need run in CoreThread
                     new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
                     //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);

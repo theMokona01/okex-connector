@@ -4,11 +4,9 @@ import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
 import classes.WebSocket.messages.BalanceMessage;
 import classes.WebSocket.messages.MessageEndPoint;
+import com.google.gson.Gson;
 import com.lmax.api.*;
-import com.lmax.api.account.AccountStateEvent;
-import com.lmax.api.account.AccountStateEventListener;
-import com.lmax.api.account.AccountSubscriptionRequest;
-import com.lmax.api.account.LoginCallback;
+import com.lmax.api.account.*;
 import com.lmax.api.order.Execution;
 import com.lmax.api.order.ExecutionEventListener;
 import com.lmax.api.order.Order;
@@ -27,6 +25,7 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -47,15 +46,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private ServerWSController wsController = null;
 
     //Working messages variables
-    private BBOMessage currentBBOMessage = new BBOMessage();
-    private BalanceMessage currentBalanceMessage = new BalanceMessage();
+    private BBOMessage currentBBOMessage= new BBOMessage();
+    private BalanceMessage currentBalanceMessage;// = new BalanceMessage(Exchange);
+
 
     //Logger variables
     private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
 
-    public PFTLMAXEventsClient(List<Instrument> InstrumentList){
+    public PFTLMAXEventsClient(List<Instrument> InstrumentList,String Exchange){
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
+        this.currentBalanceMessage = new BalanceMessage(this.Exchange);
     }
 
     public void setWsController(ServerWSController wsController) {
@@ -187,8 +188,21 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
 
     public void notify(final AccountStateEvent accountStateEvent)
     {
-
-
+        trclog.log(Level.INFO,accountStateEvent.toString());
+        Map<String, Wallet> Wallets  = accountStateEvent.getCurrencyWallets();
+        String Symbol="";
+        Double Cash=0.0;
+        Double Credit=0.0;
+        this.currentBalanceMessage.CleanBalance();
+        for(Map.Entry<String,Wallet> entry : Wallets.entrySet())
+        {
+             Symbol = entry.getKey();
+             Cash = Double.parseDouble(entry.getValue().getCash().toString());
+             Credit = Double.parseDouble(entry.getValue().getCredit().toString());
+             this.currentBalanceMessage.setSymbolBalance(Symbol,Cash+Credit);
+        }
+        currentBalanceMessage.setExchange(this.Exchange);
+        wsController.SendBalancePointMessage(this.currentBalanceMessage);
     }
 
     private void subscribe(final Session session, final SubscriptionRequest request, final String subscriptionDescription)

@@ -44,7 +44,7 @@ public class ServerWSController {
     @SendTo(BBOSendPoint)
     public BalanceMessage balanceMsgDog(@Payload String message) throws Exception {
         trclog.log(Level.INFO,"Received on point /pricepoint: "+message.toString());
-        return new BalanceMessage();//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
+        return new BalanceMessage("");//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
     }
 
     @MessageMapping("/pricepoint")

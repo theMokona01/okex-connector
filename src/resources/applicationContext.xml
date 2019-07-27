@@ -15,5 +15,6 @@
             <constructor-arg name="url" value="${LMAX.Credentials.url}"/>
             <constructor-arg name="login" value="${LMAX.Credentials.login}"/>
             <constructor-arg name="password" value="${LMAX.Credentials.password}"/>
+            <constructor-arg name="Exchange" value="${LMAX.exchange.name}"/>
         </bean>
 </beans>
