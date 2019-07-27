@@ -11,34 +11,27 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ConnectorCore {
+    private static Logger trclog = Logger.getLogger(ConnectorCore.class.getName());
     public static void main(String[] args) {
-        System.out.println("Connector started");
+        trclog.log(Level.INFO,"Connector started");
 
         //Spring boot properties
-        Map<String, Object> pro = new HashMap<>();
-        pro.put("log4j.logger.org.springframework", "INFO");
-        pro.put("server.port","8081");
+        Map<String, Object> CoreServerProperties = new HashMap<>();
+        CoreServerProperties.put("server.port","8081");
         //Initialize client UI
 
         SpringApplication ClientWSApp = new SpringApplication(ServerWSApplication.class);
-        ClientWSApp.setDefaultProperties(pro);
+        ClientWSApp.setDefaultProperties(CoreServerProperties);
         ApplicationContext WSAppContext = ClientWSApp.run(args);
         //Testing Spring
-        String[] beans = WSAppContext.getBeanDefinitionNames();
-        Arrays.sort(beans);
-        System.out.println("Loaded beans ");
+        logLoadedBeans(WSAppContext);
+
+        //Get websocket server instance
         ServerWSController RelationWSController = (ServerWSController)WSAppContext.getBean("serverWSController");
-        while(true) {
-            RelationWSController.SendBBOPointMessage(new BBOMessage());
-            try{
-            Thread.sleep(1000);}catch (Exception e){}
-            break;
-        }
-        //for (String bean : beans) {
-            //System.out.println("Bean :"+bean);
-        //}
 
         //Initialize Exchange connection
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(
@@ -50,5 +43,13 @@ public class ConnectorCore {
         //context.close();
 
 
+    }
+
+    public static void logLoadedBeans(ApplicationContext AppContext){
+        String[] beans = AppContext.getBeanDefinitionNames();
+        Arrays.sort(beans);
+        for (String bean : beans) {
+            trclog.log(Level.INFO,"Loaded bean "+bean);
+        }
     }
 }

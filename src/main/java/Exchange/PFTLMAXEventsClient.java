@@ -2,6 +2,7 @@ package Exchange;
 
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
+import classes.WebSocket.messages.BalanceMessage;
 import classes.WebSocket.messages.MessageEndPoint;
 import com.lmax.api.*;
 import com.lmax.api.account.AccountStateEvent;
@@ -36,17 +37,20 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         StreamFailureListener, OrderEventListener, InstructionRejectedEventListener, ExecutionEventListener, SessionDisconnectedListener,
         PositionEventListener {
     private String Exchange;
-    private static final long INSTRUMENT_ID_1 = 4006; //EURJPY   //4011; //EURCHF
-    private static final long INSTRUMENT_ID_2 = 4001; //EURUSD
-    private static final long INSTRUMENT_ID_3 = 4004; //USDJPY
+    //Lmax variables
     private List<Instrument> InstrumentList;
     private Session currentSession;
-    public HashMap<String, HashMap<String, JSONObject>> OrdersStateMap = new HashMap<String, HashMap<String, JSONObject>>();
+    //public HashMap<String, HashMap<String, JSONObject>> OrdersStateMap = new HashMap<String, HashMap<String, JSONObject>>();
 
+    //WSController variables
     private MessageEndPoint endpoints = new MessageEndPoint();
     private ServerWSController wsController = null;
-    private BBOMessage currentBBOMessage = new BBOMessage();
 
+    //Working messages variables
+    private BBOMessage currentBBOMessage = new BBOMessage();
+    private BalanceMessage currentBalanceMessage = new BalanceMessage();
+
+    //Logger variables
     private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
 
     public PFTLMAXEventsClient(List<Instrument> InstrumentList){
@@ -57,7 +61,6 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     public void setWsController(ServerWSController wsController) {
         this.wsController = wsController;
     }
-
     public Session getLmaxSession(){
         return this.currentSession;
     }
@@ -65,17 +68,18 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void onLoginSuccess(final Session session)
     {
-        System.out.println("Logged in, subscribing");
-        System.out.println("My accountId is: " + session.getAccountDetails().getAccountId()+" "+session.getAccountDetails().toString());
+        trclog.log(Level.INFO,"Logged in, subscribing");
+        trclog.log(Level.INFO,"My accountId is: " + session.getAccountDetails().getAccountId()+" "+session.getAccountDetails().toString());
+        //Register LMAX listeners
         session.registerAccountStateEventListener(this);
         session.registerOrderBookEventListener(this);
         session.registerStreamFailureListener(this);
         session.registerOrderEventListener(this);
         session.registerInstructionRejectedEventListener(this);
         session.registerExecutionEventListener(this);
-
         session.registerPositionEventListener(this);
 
+        //Subscribe to messages
         subscribe(session, new PositionSubscriptionRequest(), "Positions");
         subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
 
@@ -89,17 +93,14 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             {
                 try
                 {
-                    //boolean wait_prices = true;
-                    //System.out.println("Sending snapshot");
                     //while (wait_prices)
                     //{
-                    //    SendToClients("ordersnapshot",OrdersStateMap.toString());
-                    //    Thread.sleep(2000);
+                    //   Sending something scheduled
                     //}
                 }
                 catch (Exception e)
                 {
-                    System.out.println("E1");
+                    trclog.log(Level.WARNING,e.getMessage());
                     e.printStackTrace();
                 }
             }
@@ -121,7 +122,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notifyStreamFailure(Exception e)
     {
-        System.out.println("Error occured on the stream");
+        trclog.log(Level.WARNING,"Error occured on the stream: "+e.getMessage());
         e.printStackTrace(System.out);
 
     }
@@ -147,7 +148,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void onLoginFailure(FailureResponse failureResponse)
     {
-        System.out.println("Login Failed: " + failureResponse);
+        trclog.log(Level.WARNING,"Login Failed: " + failureResponse);
     }
 
     public void notify(final OrderBookEvent orderBookEvent)
@@ -168,7 +169,6 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         }
         long instrument_id = orderBookEvent.getInstrumentId();
         String message = String.valueOf(instrument_id)+", ask: "+String.valueOf(Ask)+", bid: "+String.valueOf(Bid);
-        //System.out.println(this.wsController.toString());
         trclog.log(Level.INFO,orderBookEvent.toString());
         currentBBOMessage.setAsk(Ask);
         currentBBOMessage.setBid(Bid);
@@ -197,12 +197,13 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         {
             public void onSuccess()
             {
-                System.out.println("Subscribed to " + subscriptionDescription);
+
+                trclog.log(Level.INFO,"Subscribed to " + subscriptionDescription);
             }
 
             public void onFailure(final FailureResponse failureResponse)
             {
-                System.err.printf("Failed to subscribe to " + subscriptionDescription + ": %s%n", failureResponse);
+                trclog.log(Level.WARNING,"Failed to subscribe to " + subscriptionDescription + ": %s%n", failureResponse);
             }
         });
     }
@@ -214,12 +215,12 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         {
             public void onSuccess()
             {
-                System.out.printf("Subscribed to instrument %d.%n", instrumentId);
+                trclog.log(Level.INFO,"Subscribed to instrument "+ String.valueOf(instrumentId));
             }
 
             public void onFailure(final FailureResponse failureResponse)
             {
-                System.err.printf("Failed to subscribe to instrument %d: %s%n", instrumentId, failureResponse);
+                trclog.log(Level.WARNING,"Failed to subscribe to instrument %"+String.valueOf(instrumentId)+" "+failureResponse);
             }
         });
     }
