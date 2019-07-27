@@ -4,7 +4,8 @@ import classes.Enums.CustomOrderParams;
 import classes.Enums.OrderSide;
 import classes.Enums.OrderStatus;
 import classes.Enums.OrderType;
-import netscape.javascript.JSObject;
+import org.json.JSONObject;
+
 
 public class Order {
     private String Exchange;
@@ -17,11 +18,13 @@ public class Order {
     private CustomOrderParams Params;
     private Double Price;
     private Double Size;
-    private JSObject CustomData;
+    private JSONObject CustomData;
     private long InitTimestamp;
     private long LastUpdate;
 
-    public Order(String exchange, String symbol, String ID, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, JSObject customData, long initTimestamp, long lastUpdate) {
+    public Order(){}
+
+    public Order(String exchange, String symbol, String ID, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, JSONObject customData, long initTimestamp, long lastUpdate) {
         Exchange = exchange;
         Symbol = symbol;
         this.ID = ID;
@@ -117,11 +120,11 @@ public class Order {
         Size = size;
     }
 
-    public JSObject getCustomData() {
+    public JSONObject getCustomData() {
         return CustomData;
     }
 
-    public void setCustomData(JSObject customData) {
+    public void setCustomData(JSONObject customData) {
         CustomData = customData;
     }
 
