@@ -1,12 +1,10 @@
 package classes.WebSocket;
 
-import classes.WebSocket.messages.BBOMessage;
-import classes.WebSocket.messages.BalanceMessage;
-import classes.WebSocket.messages.InfoMessage;
-import classes.WebSocket.messages.MessageEndPoint;
+import classes.WebSocket.messages.*;
 import com.google.gson.Gson;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -59,6 +57,14 @@ public class ServerWSController {
     public InfoMessage helloMsgDog(@Payload String message) throws Exception {
         trclog.log(Level.INFO,"Received on point /hello: "+message.toString());
         return new InfoMessage("Hello accepted "+message);
+    }
+
+    @MessageMapping("/command")
+    @SendTo(InfoSendPoint)
+    public InfoMessage commandMsgDog(Message<CommandMessage> message) throws Exception {
+        //CommandMessage cmdMsg = (CommandMessage)message;
+        trclog.log(Level.INFO,"Received on point /command: "+message.getPayload().toString());
+        return new InfoMessage("Command accepted "+message.getPayload().toString());
     }
 
     @SubscribeMapping(BBOSendPoint)
