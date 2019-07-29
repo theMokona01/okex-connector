@@ -7,10 +7,15 @@ import classes.Enums.OrderType;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class Order {
     private String Exchange;
     private String Symbol;
+    private String LeftSymbol;
+    private String RightSymbol;
     private String ID;
     private String ExchangeID;
     private OrderSide Side;
@@ -23,11 +28,19 @@ public class Order {
     private long InitTimestamp;
     private long LastUpdate;
 
+
+    private Double filled=0.0;
+    private Double executed=0.0;
+    private List<Execution> Executions= new ArrayList<Execution>();
+
+
     public Order(){}
 
-    public Order(String exchange, String symbol, String ID, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, JSONObject customData, long initTimestamp, long lastUpdate) {
+    public Order(String exchange, String symbol, String leftSymbol, String rightSymbol, String ID, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, JSONObject customData, long initTimestamp, long lastUpdate) {
         Exchange = exchange;
         Symbol = symbol;
+        LeftSymbol = leftSymbol;
+        RightSymbol = rightSymbol;
         this.ID = ID;
         ExchangeID = exchangeID;
         Side = side;
@@ -55,6 +68,22 @@ public class Order {
 
     public void setSymbol(String symbol) {
         Symbol = symbol;
+    }
+
+    public String getLeftSymbol() {
+        return LeftSymbol;
+    }
+
+    public void setLeftSymbol(String leftSymbol) {
+        LeftSymbol = leftSymbol;
+    }
+
+    public String getRightSymbol() {
+        return RightSymbol;
+    }
+
+    public void setRightSymbol(String rightSymbol) {
+        RightSymbol = rightSymbol;
     }
 
     public String getID() {
@@ -143,6 +172,34 @@ public class Order {
 
     public void setLastUpdate(long lastUpdate) {
         LastUpdate = lastUpdate;
+    }
+
+    public Double getFilled() {
+        return filled;
+    }
+
+    public void setFilled(Double filled) {
+        this.filled = filled;
+    }
+
+    public Double getExecuted() {
+        return executed;
+    }
+
+    public void setExecuted(Double executed) {
+        this.executed = executed;
+    }
+
+    public List<Execution> getExecutions() {
+        return Executions;
+    }
+
+    public void addExecution(Execution execution){
+        this.Executions.add(execution);
+    }
+
+    public void setExecutions(List<Execution> executions) {
+        Executions = executions;
     }
 
     @Override

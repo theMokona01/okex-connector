@@ -22,6 +22,7 @@ public class ServerWSController {
     static final String BBOSendPoint = "/rcv/bbo";
     static final String InfoSendPoint   = "/rcv/info";
     static final String BalanceSendPoint    = "/rcv/balance";
+    static final String OrdersSnapshotSendPoint = "/rcv/ordersnapshot";
 
 
     private static Logger trclog = Logger.getLogger(ServerWSController.class.getName());
