@@ -68,10 +68,14 @@ public class ServerWSController {
     //Command point for trading management
     @MessageMapping("/command")
     @SendTo(InfoSendPoint)
-    public InfoMessage commandMsgDog(Message<CommandMessage> message) throws Exception {
+    public InfoMessage commandMsgDog(@Payload String message) throws Exception {
         //CommandMessage cmdMsg = message.getPayload().getClass().toString();
-        trclog.log(Level.INFO,"Received on point /command: "+message.getPayload().toString());
-        return new InfoMessage("Command accepted "+message.toString());
+        trclog.log(Level.INFO,"Received on point /command: "+message);//.getPayload().toString());
+        Gson gson = new Gson();
+        CommandMessage cmd = gson.fromJson(message,CommandMessage.class);
+        cmd.DeserializeOrder();
+
+        return new InfoMessage("Command accepted "+cmd.getCommand().toString()+":"+cmd.getOrder().toString());//message.toString());
     }
 
 

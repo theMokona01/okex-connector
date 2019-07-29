@@ -4,6 +4,7 @@ import classes.Enums.CustomOrderParams;
 import classes.Enums.OrderSide;
 import classes.Enums.OrderStatus;
 import classes.Enums.OrderType;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.json.JSONObject;
 
 
@@ -142,5 +143,10 @@ public class Order {
 
     public void setLastUpdate(long lastUpdate) {
         LastUpdate = lastUpdate;
+    }
+
+    @Override
+    public String toString(){
+        return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 }
