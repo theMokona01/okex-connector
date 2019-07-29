@@ -31,7 +31,9 @@ public class Order {
 
     private Double filled=0.0;
     private Double executed=0.0;
+    private Double cancelled_qty=0.0;
     private List<Execution> Executions= new ArrayList<Execution>();
+
 
 
     public Order(){}
@@ -207,3 +209,4 @@ public class Order {
         return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 }
+

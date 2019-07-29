@@ -22,6 +22,9 @@ public class ServerWSController {
     static final String BBOSendPoint = "/rcv/bbo";
     static final String InfoSendPoint   = "/rcv/info";
     static final String BalanceSendPoint    = "/rcv/balance";
+
+    static final String ExecutionSendPoint = "/rcv/execution";
+    static final String OrderSendPoint = "/rcv/order";
     static final String OrdersSnapshotSendPoint = "/rcv/ordersnapshot";
 
 

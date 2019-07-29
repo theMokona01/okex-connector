@@ -1,5 +1,6 @@
 package Exchange;
 
+import classes.Enums.OrderSide;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
 import classes.WebSocket.messages.BalanceMessage;
@@ -31,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.System.currentTimeMillis;
+
 
 public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
         StreamFailureListener, OrderEventListener, InstructionRejectedEventListener, ExecutionEventListener, SessionDisconnectedListener,
@@ -39,7 +42,10 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     //Lmax variables
     private List<Instrument> InstrumentList;
     private Session currentSession;
-    //public HashMap<String, HashMap<String, JSONObject>> OrdersStateMap = new HashMap<String, HashMap<String, JSONObject>>();
+
+    //Trading state variables
+    HashMap<String, classes.trading.Order> OrdersState = new HashMap<>();
+    HashMap<String, classes.trading.Execution> ExecutionState = new HashMap<>();
 
     //WSController variables
     private MessageEndPoint endpoints = new MessageEndPoint();
@@ -48,7 +54,8 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     //Working messages variables
     private BBOMessage currentBBOMessage= new BBOMessage();
     private BalanceMessage currentBalanceMessage;// = new BalanceMessage(Exchange);
-
+    private classes.trading.Order currentOrder = new classes.trading.Order();
+    private classes.trading.Execution currentExecution = new classes.trading.Execution();
 
     //Logger variables
     private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
@@ -132,19 +139,46 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notify(Execution execution)
     {
+        currentExecution.setFilled(Double.parseDouble(execution.getQuantity().toString()));
+        if(Double.parseDouble(execution.getQuantity().toString()) != 0) {
+            currentExecution.setExecuted(Double.parseDouble(execution.getPrice().toString())*Double.parseDouble(execution.getQuantity().toString()));
+        }
+        currentExecution.setTimestamp(currentTimeMillis());
+        trclog.log(Level.INFO,execution.toString());
 
+        trclog.log(Level.INFO,currentExecution.toString());
+        //Send execution to client
     }
 
     @Override
     public void notify(InstructionRejectedEvent instructionRejected)
     {
-
+        trclog.log(Level.INFO,instructionRejected.toString());
     }
 
     @Override
     public void notify(Order order)
     {
-
+        trclog.log(Level.INFO,order.toString());
+        String orderId = order.getInstructionId();
+        this.currentOrder.setExchange(this.Exchange);
+        this.currentOrder.setExchangeID(order.getInstructionId());
+        this.currentOrder.setSymbol(String.valueOf(order.getInstrumentId()));
+        this.currentOrder.setFilled(Double.parseDouble(order.getFilledQuantity().toString()));
+        this.currentOrder.setSize(Math.abs(Double.parseDouble(order.getQuantity().toString())));
+        if(Double.parseDouble(order.getQuantity().toString()) < 0){
+            this.currentOrder.setSide(OrderSide.SELL);
+        }else{
+            this.currentOrder.setSide(OrderSide.BUY);
+        }
+        classes.trading.Order cOrder = this.currentOrder;
+        if(this.OrdersState.containsKey(orderId)) {
+            OrdersState.replace(orderId,cOrder);
+        }else{
+            OrdersState.put(orderId,cOrder);
+        }
+        trclog.log(Level.INFO,currentOrder.toString());
+        //Sending order to client
     }
 
     @Override
@@ -171,7 +205,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         }
         long instrument_id = orderBookEvent.getInstrumentId();
         String message = String.valueOf(instrument_id)+", ask: "+String.valueOf(Ask)+", bid: "+String.valueOf(Bid);
-        trclog.log(Level.INFO,orderBookEvent.toString());
+        //trclog.log(Level.INFO,orderBookEvent.toString());
         currentBBOMessage.setAsk(Ask);
         currentBBOMessage.setBid(Bid);
         currentBBOMessage.setAsk_size(Ask_Size);
@@ -184,12 +218,12 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notify(final PositionEvent positionEvent)
     {
-
+        trclog.log(Level.INFO,positionEvent.toString());
     }
 
     public void notify(final AccountStateEvent accountStateEvent)
     {
-        trclog.log(Level.INFO,accountStateEvent.toString());
+        //trclog.log(Level.INFO,accountStateEvent.toString());
         Map<String, Wallet> Wallets  = accountStateEvent.getCurrencyWallets();
         String Symbol="";
         Double Cash=0.0;

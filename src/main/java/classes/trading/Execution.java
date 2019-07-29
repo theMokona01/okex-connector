@@ -1,5 +1,7 @@
 package classes.trading;
 
+import org.apache.commons.lang3.builder.ToStringStyle;
+
 public class Execution {
     private Double Filled;
     private Double Executed;
@@ -45,5 +47,9 @@ public class Execution {
 
     public void setTimestamp(long timestamp) {
         Timestamp = timestamp;
+    }
+    @Override
+    public String toString(){
+        return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
 }
