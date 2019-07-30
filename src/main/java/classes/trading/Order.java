@@ -12,7 +12,10 @@ import java.util.List;
 
 
 public class Order {
+    private String InstructionKey;
+    private String Strategy;
     private String Exchange;
+    private String UserSymbol;
     private String Symbol;
     private String LeftSymbol;
     private String RightSymbol;
@@ -24,7 +27,7 @@ public class Order {
     private CustomOrderParams Params;
     private Double Price;
     private Double Size;
-    private JSONObject CustomData;
+    private String CustomJsonData;
     private long InitTimestamp;
     private long LastUpdate;
 
@@ -38,12 +41,15 @@ public class Order {
 
     public Order(){}
 
-    public Order(String exchange, String symbol, String leftSymbol, String rightSymbol, String ID, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, JSONObject customData, long initTimestamp, long lastUpdate) {
+    public Order(String instructionKey, String strategy, String exchange,String userSymbol, String symbol,  String leftSymbol, String rightSymbol, String id, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, String customJsonData, long initTimestamp, long lastUpdate) {
+        InstructionKey = instructionKey;
+        Strategy = strategy;
         Exchange = exchange;
         Symbol = symbol;
+        UserSymbol = userSymbol;
         LeftSymbol = leftSymbol;
         RightSymbol = rightSymbol;
-        this.ID = ID;
+        ID = id;
         ExchangeID = exchangeID;
         Side = side;
         Type = type;
@@ -51,9 +57,25 @@ public class Order {
         Params = params;
         Price = price;
         Size = size;
-        CustomData = customData;
+        CustomJsonData = customJsonData;
         InitTimestamp = initTimestamp;
         LastUpdate = lastUpdate;
+    }
+
+    public String getInstructionKey() {
+        return InstructionKey;
+    }
+
+    public void setInstructionKey(String instructionKey) {
+        InstructionKey = instructionKey;
+    }
+
+    public String getStrategy() {
+        return Strategy;
+    }
+
+    public void setStrategy(String strategy) {
+        Strategy = strategy;
     }
 
     public String getExchange() {
@@ -62,6 +84,14 @@ public class Order {
 
     public void setExchange(String exchange) {
         Exchange = exchange;
+    }
+
+    public String getUserSymbol() {
+        return UserSymbol;
+    }
+
+    public void setUserSymbol(String userSymbol) {
+        UserSymbol = userSymbol;
     }
 
     public String getSymbol() {
@@ -152,12 +182,12 @@ public class Order {
         Size = size;
     }
 
-    public JSONObject getCustomData() {
-        return CustomData;
+    public String getCustomData() {
+        return CustomJsonData;
     }
 
-    public void setCustomData(JSONObject customData) {
-        CustomData = customData;
+    public void setCustomData(String customJsonData) {
+        CustomJsonData = customJsonData;
     }
 
     public long getInitTimestamp() {
@@ -203,6 +233,15 @@ public class Order {
     public void setExecutions(List<Execution> executions) {
         Executions = executions;
     }
+
+    public Double getCancelled_qty() {
+        return cancelled_qty;
+    }
+
+    public void setCancelled_qty(Double cancelled_qty) {
+        this.cancelled_qty = cancelled_qty;
+    }
+
 
     @Override
     public String toString(){

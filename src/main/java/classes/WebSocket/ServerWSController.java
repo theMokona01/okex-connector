@@ -1,5 +1,6 @@
 package classes.WebSocket;
 
+import classes.Enums.CommandStatus;
 import classes.WebSocket.messages.*;
 import com.google.gson.Gson;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -19,9 +20,18 @@ import java.util.logging.Logger;
 @Controller
 public class ServerWSController {
     static final MessageEndPoint EndPoints = new MessageEndPoint();
+    //Server commands endpoints
+    static final String CommandBalancePoint = "/balancepoint";
+    static final String CommandPricePoint = "/pricepoint";
+    static final String CommandHelloPoint = "/hello";
+    static final String CommandDefaultPoint = "/command";
+    static final String CommandOrderManagementPoint = "/order";
+
+    //Client listeners endpoints
     static final String BBOSendPoint = "/rcv/bbo";
     static final String InfoSendPoint   = "/rcv/info";
     static final String BalanceSendPoint    = "/rcv/balance";
+    static final String CommandOrderSendPoint = "/rcv/order";
 
     static final String ExecutionSendPoint = "/rcv/execution";
     static final String OrderSendPoint = "/rcv/order";
@@ -46,7 +56,7 @@ public class ServerWSController {
     }
 
     //Balance command point
-    @MessageMapping("/balancepoint")
+    @MessageMapping(CommandBalancePoint)
     @SendTo(BBOSendPoint)
     public BalanceMessage balanceMsgDog(@Payload String message) throws Exception {
         trclog.log(Level.INFO,"Received on point /balancepoint: "+message.toString());
@@ -54,7 +64,7 @@ public class ServerWSController {
     }
 
     //Price command point
-    @MessageMapping("/pricepoint")
+    @MessageMapping(CommandPricePoint)
     @SendTo(BBOSendPoint)
     public BBOMessage pricesMsgDog(@Payload String message) throws Exception {
         trclog.log(Level.INFO,"Received on point /pricepoint: "+message.toString());
@@ -62,15 +72,15 @@ public class ServerWSController {
     }
 
     //Initial hello message from client
-    @MessageMapping("/hello")
+    @MessageMapping(CommandHelloPoint)
     @SendTo(InfoSendPoint)
     public InfoMessage helloMsgDog(@Payload String message) throws Exception {
         trclog.log(Level.INFO,"Received on point /hello: "+message.toString());
         return new InfoMessage("Hello accepted "+message);
     }
 
-    //Command point for trading management
-    @MessageMapping("/command")
+    //Command point for trading management {debug usage}
+    @MessageMapping(CommandDefaultPoint)
     @SendTo(InfoSendPoint)
     public InfoMessage commandMsgDog(@Payload String message) throws Exception {
         //CommandMessage cmdMsg = message.getPayload().getClass().toString();
@@ -82,6 +92,19 @@ public class ServerWSController {
         return new InfoMessage("Command accepted "+cmd.getCommand().toString()+":"+cmd.getOrder().toString());//message.toString());
     }
 
+    //Command point for orders management
+    @MessageMapping(CommandOrderManagementPoint)
+    @SendTo(CommandOrderSendPoint)
+    public CommandMessage orderMsgDog(@Payload String message) throws Exception {
+        //CommandMessage cmdMsg = message.getPayload().getClass().toString();
+        trclog.log(Level.INFO,"Received on point "+CommandOrderManagementPoint+": "+message);//.getPayload().toString());
+        Gson gson = new Gson();
+        CommandMessage cmd = gson.fromJson(message,CommandMessage.class);
+        cmd.DeserializeOrder();
+        cmd.setStatus(CommandStatus.ACCEPTED);
+        cmd.DeserializeOrder();
+        return cmd;//"Command  "+cmd.getCommand().toString()+":"+cmd.getOrder().toString());//message.toString());
+    }
 
     //Subscribe BBO point #depricated now
     @SubscribeMapping(BBOSendPoint)
