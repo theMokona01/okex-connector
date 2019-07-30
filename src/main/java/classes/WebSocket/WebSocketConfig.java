@@ -9,6 +9,7 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 import org.springframework.web.socket.server.RequestUpgradeStrategy;
 import org.springframework.web.socket.server.standard.TomcatRequestUpgradeStrategy;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
@@ -32,6 +33,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/gateway").setHandshakeHandler(new DefaultHandshakeHandler(upgradeStrategy))
                 .setAllowedOrigins("*");
         System.out.println("Registered");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(1000*1000); // default : 64 * 1024
+        registry.setSendTimeLimit(200 * 10000); // default : 10 * 10000
+        registry.setSendBufferSizeLimit(100* 512 * 1024); // default : 512 * 1024
+
     }
 
 }

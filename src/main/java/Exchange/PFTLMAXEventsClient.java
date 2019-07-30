@@ -2,9 +2,7 @@ package Exchange;
 
 import classes.Enums.OrderSide;
 import classes.WebSocket.ServerWSController;
-import classes.WebSocket.messages.BBOMessage;
-import classes.WebSocket.messages.BalanceMessage;
-import classes.WebSocket.messages.MessageEndPoint;
+import classes.WebSocket.messages.*;
 import com.google.gson.Gson;
 import com.lmax.api.*;
 import com.lmax.api.account.*;
@@ -56,6 +54,9 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private BalanceMessage currentBalanceMessage;// = new BalanceMessage(Exchange);
     private classes.trading.Order currentOrder = new classes.trading.Order();
     private classes.trading.Execution currentExecution = new classes.trading.Execution();
+    private SingleOrderMessage currentSingleOrderMessage = new SingleOrderMessage();
+    private SingleExecutionMessage currentSingleExecutionMessage = new SingleExecutionMessage();
+    private OrdersSnapshotMessage currentOrderSnapshotMessage = new OrdersSnapshotMessage();
 
     //Logger variables
     private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
@@ -64,6 +65,8 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
         this.currentBalanceMessage = new BalanceMessage(this.Exchange);
+        this.currentSingleOrderMessage = new SingleOrderMessage();
+
     }
 
     public void setWsController(ServerWSController wsController) {
@@ -94,6 +97,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         for(Instrument instrument : this.InstrumentList) {
             subscribeToInstrument(session, Long.parseLong(instrument.GetExchangeSymbol()));
         }
+
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable()
         {
             @Override
@@ -101,10 +105,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             {
                 try
                 {
-                    //while (wait_prices)
-                    //{
+                    //HashMap<String,classes.trading.Order> ord = new HashMap<>();
+                    //ord.put("TEST", new classes.trading.Order());
+                    //currentOrderSnapshotMessage.setOrdersSnapshot(ord);
+                    trclog.log(Level.INFO,"Sending:"+currentOrderSnapshotMessage.getClass().toString()+": "+currentOrderSnapshotMessage.toString());
+                    while (true)
+                    {
                     //   Sending something scheduled
-                    //}
+                        currentOrderSnapshotMessage.setOrdersSnapshot(OrdersState);
+                        wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage,10);
+                        Thread.sleep(3000);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -148,6 +159,9 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
 
         trclog.log(Level.INFO,currentExecution.toString());
         //Send execution to client
+        this.currentSingleExecutionMessage.setExecution(this.currentExecution);
+        wsController.SendSingleExecutionPointMessage(this.currentSingleExecutionMessage);
+
     }
 
     @Override
@@ -175,10 +189,15 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         if(this.OrdersState.containsKey(orderId)) {
             OrdersState.replace(orderId,cOrder);
         }else{
-            OrdersState.put(orderId,cOrder);
+                //if(OrdersState.size() < 30) {
+                    OrdersState.put(orderId, cOrder);
+                //}
         }
         trclog.log(Level.INFO,currentOrder.toString());
         //Sending order to client
+        this.currentSingleOrderMessage.setOrder(currentOrder);
+        wsController.SendSingleOrderPointMessage(this.currentSingleOrderMessage);
+
     }
 
     @Override
