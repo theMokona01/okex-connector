@@ -8,7 +8,7 @@ public interface ExchangeConnector {
   void DestroyConnector();
 
   //Core
-  ExchangeConnector InitConnector(JSONObject Credentials);
+  ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments);
   RequestResponse SendOrder(Order order);
   RequestResponse CancelOrder(Order order);
   RequestResponse CancellAllOrders();

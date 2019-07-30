@@ -2,8 +2,10 @@ package classes.WebSocket;
 
 import classes.Enums.CommandStatus;
 import classes.Enums.Commands;
+import classes.Enums.OrderCommand;
 import classes.WebSocket.messages.*;
 import com.google.gson.Gson;
+import interfaces.ExchangeConnector;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
@@ -15,13 +17,19 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 import pf.trading.connector.ConnectorCore;
 
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Controller
 public class ServerWSController {
+    //Exchange connector instances for exchange management
+    private ExchangeConnector exchangeConnector;
+
+    //Endpoints storage
     static final MessageEndPoint EndPoints = new MessageEndPoint();
     //Server commands endpoints
+
     static final String CommandBalancePoint = "/balancepoint";
     static final String CommandPricePoint = "/pricepoint";
     static final String CommandHelloPoint = "/hello";
@@ -43,6 +51,14 @@ public class ServerWSController {
 
     @Autowired
     private SimpMessageSendingOperations messagingTemplate;
+
+    public ExchangeConnector getExchangeConnector() {
+        return exchangeConnector;
+    }
+
+    public void setExchangeConnector(ExchangeConnector exchangeConnector) {
+        this.exchangeConnector = exchangeConnector;
+    }
 
     //Broadcast sending BBO message
     public void SendBBOPointMessage(BBOMessage message){
@@ -103,8 +119,26 @@ public class ServerWSController {
         CommandMessage cmd = gson.fromJson(message,CommandMessage.class);
         cmd.DeserializeOrder();
         cmd.setStatus(CommandStatus.ACCEPTED);
+        OrderCommand currentCommand = cmd.getOrderCommand();
         if(cmd.getCommand() == Commands.ORDERCOMMAND){
-
+            switch(currentCommand){
+                case PLACE:
+                    exchangeConnector.Destroy();
+                    cmd.setStatus(CommandStatus.EXECUTED);
+                    break;
+                case CANCEL:
+                    cmd.setStatus(CommandStatus.EXECUTED);
+                    break;
+                case CANCELL_ALL:
+                    cmd.setStatus(CommandStatus.EXECUTED);
+                    break;
+                case REQUEST_STATUS:
+                    cmd.setStatus(CommandStatus.SENDED);
+                    break;
+                default:
+                    cmd.setStatus(CommandStatus.REJECTED);
+                    break;
+            }
 
         }
         cmd.DeserializeOrder();

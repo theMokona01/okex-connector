@@ -5,5 +5,6 @@ public enum CommandStatus {
     SENDED,
     INPROCESS,
     ACCEPTED,
-    EXECUTED
+    EXECUTED,
+    REJECTED
 }

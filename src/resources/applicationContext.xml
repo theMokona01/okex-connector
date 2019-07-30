@@ -16,5 +16,15 @@
             <constructor-arg name="login" value="${LMAX.Credentials.login}"/>
             <constructor-arg name="password" value="${LMAX.Credentials.password}"/>
             <constructor-arg name="Exchange" value="${LMAX.exchange.name}"/>
+            <constructor-arg name="Instruments">
+                <list>
+                    <value>5002</value>
+                    <value>5003</value>
+                    <value>5004</value>
+                    <value>5005</value>
+                    <value>5006</value>
+                    <value>5013</value>
+                </list>
+            </constructor-arg>
         </bean>
 </beans>

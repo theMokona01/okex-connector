@@ -42,6 +42,9 @@ public class ConnectorCore {
         lmaxConnector.Connector.setWsController(RelationWSController);
         //context.close();
 
+        //Bing exchange connector to ServerWSController
+        RelationWSController.setExchangeConnector(lmaxConnector);
+
 
     }
 

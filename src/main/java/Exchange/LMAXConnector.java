@@ -12,10 +12,14 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LMAXConnector implements ExchangeConnector {
     public PFTLMAXEventsClient Connector;
     private String Exchange;
+    //Logger variables
+    private Logger trclog;
 
     @Override
     public void DoInitConnector() {
@@ -27,21 +31,22 @@ public class LMAXConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public LMAXConnector(String url, String login, String password, String Exchange) {
+    public LMAXConnector(String url, String login, String password, String Exchange, String[] Instruments) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
                     .put("login", login)
                     .put("password", password);
             this.Exchange=Exchange;
-            InitConnector(Credentials);
+            InitConnector(Credentials,Instruments);
+            trclog = Logger.getLogger(LMAXConnector.class.getName());
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
     @Override
-    public ExchangeConnector InitConnector(JSONObject Credentials) {
+    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments) {
         try {
             if (Credentials.has("url") && Credentials.has("login") && Credentials.has("password")) {
                 try {
@@ -50,27 +55,12 @@ public class LMAXConnector implements ExchangeConnector {
                     String password = Credentials.getString("password");
                     LmaxApi lmaxApiAccount = new LmaxApi(url);
 
-                    //Initializaion of instruments - need in BEANs
-                    LMAXInstrument InitInstrument = new LMAXInstrument();
-                    InitInstrument.ExchangeSymbol="5002";
-                    LMAXInstrument InitInstrument2 = new LMAXInstrument();
-                    InitInstrument2.ExchangeSymbol="5003";
-                    LMAXInstrument InitInstrument3 = new LMAXInstrument();
-                    InitInstrument3.ExchangeSymbol="5004";
-                    LMAXInstrument InitInstrument4 = new LMAXInstrument();
-                    InitInstrument4.ExchangeSymbol="5005";
-                    LMAXInstrument InitInstrument5 = new LMAXInstrument();
-                    InitInstrument5.ExchangeSymbol="5006";
-                    LMAXInstrument InitInstrument6 = new LMAXInstrument();
-                    InitInstrument6.ExchangeSymbol="5013";
-
                     List<Instrument> InstrumentList = new ArrayList<>();
-                    InstrumentList.add(InitInstrument);
-                    InstrumentList.add(InitInstrument2);
-                    InstrumentList.add(InitInstrument3);
-                    InstrumentList.add(InitInstrument4);
-                    InstrumentList.add(InitInstrument5);
-                    InstrumentList.add(InitInstrument6);
+                    for(String instrument: Instruments){
+                        LMAXInstrument InitInstrument = new LMAXInstrument();
+                        InitInstrument.ExchangeSymbol=instrument;
+                        InstrumentList.add(InitInstrument);
+                    }
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
@@ -116,6 +106,6 @@ public class LMAXConnector implements ExchangeConnector {
 
     @Override
     public void Destroy() {
-
+        trclog.log(Level.INFO,"Destroy call from "+this.getClass().toString());
     }
 }
