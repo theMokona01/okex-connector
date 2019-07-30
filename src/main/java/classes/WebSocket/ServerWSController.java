@@ -1,6 +1,7 @@
 package classes.WebSocket;
 
 import classes.Enums.CommandStatus;
+import classes.Enums.Commands;
 import classes.WebSocket.messages.*;
 import com.google.gson.Gson;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -102,6 +103,10 @@ public class ServerWSController {
         CommandMessage cmd = gson.fromJson(message,CommandMessage.class);
         cmd.DeserializeOrder();
         cmd.setStatus(CommandStatus.ACCEPTED);
+        if(cmd.getCommand() == Commands.ORDERCOMMAND){
+
+
+        }
         cmd.DeserializeOrder();
         return cmd;//"Command  "+cmd.getCommand().toString()+":"+cmd.getOrder().toString());//message.toString());
     }

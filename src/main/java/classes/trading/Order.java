@@ -242,7 +242,6 @@ public class Order {
         this.cancelled_qty = cancelled_qty;
     }
 
-
     @Override
     public String toString(){
         return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);

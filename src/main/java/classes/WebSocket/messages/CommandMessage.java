@@ -11,6 +11,7 @@ import org.json.JSONObject;
 public class CommandMessage {
     private Commands command;
     private CommandStatus status;
+    private OrderCommand orderCommand;
 
     //Order commands serialization/deserialization variables
     private String OrderString;
@@ -20,6 +21,7 @@ public class CommandMessage {
 
         this.order = new Order();
         this.status = CommandStatus.GENERATED;
+        this.orderCommand = OrderCommand.WAIT;
     }
 
     public Order getOrder() {
@@ -45,6 +47,14 @@ public class CommandMessage {
 
     public void setCommand(Commands command) {
         this.command = command;
+    }
+
+    public OrderCommand getOrderCommand() {
+        return orderCommand;
+    }
+
+    public void setOrderCommand(OrderCommand orderCommand) {
+        this.orderCommand = orderCommand;
     }
 
     public String toGsonSerialize(){
