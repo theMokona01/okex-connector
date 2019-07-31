@@ -113,7 +113,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                     {
                     //   Sending something scheduled
                         currentOrderSnapshotMessage.setOrdersSnapshot(OrdersState);
-                        wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage,10);
+                        //wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage,10);
                         Thread.sleep(3000);
                     }
                 }
