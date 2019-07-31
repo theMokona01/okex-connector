@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationContext;
 public class ServerWSApplication{
     @Autowired
     private ApplicationContext appContext;
+
     public static void main(String[] args) {
         SpringApplication.run(ServerWSApplication.class, args);
     }

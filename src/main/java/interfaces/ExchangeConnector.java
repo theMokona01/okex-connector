@@ -1,5 +1,6 @@
 package interfaces;
 
+import Exchange.RunType;
 import classes.trading.ExchangeStorage;
 import org.json.JSONObject;
 
@@ -9,7 +10,7 @@ public interface ExchangeConnector {
   void DestroyConnector();
 
   //Core
-  ExchangeConnector InitConnector(JSONObject Credentials, String[] Instruments, ExchangeStorage exchangeStorage);
+  ExchangeConnector InitConnector(JSONObject Credentials, String[] Instruments, ExchangeStorage exchangeStorage, RunType connectorType);
   RequestResponse SendOrder(Order order);
   RequestResponse CancelOrder(Order order);
   RequestResponse CancellAllOrders();

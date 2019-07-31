@@ -21,7 +21,7 @@ public class ConnectorCore {
 
         //Spring boot properties
         Map<String, Object> CoreServerProperties = new HashMap<>();
-        CoreServerProperties.put("server.port","8081");
+        //CoreServerProperties.put("server.port","8081");
         //Initialize client UI
 
         SpringApplication ClientWSApp = new SpringApplication(ServerWSApplication.class);

@@ -60,12 +60,16 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     //Connector storage variables
     ExchangeStorage currentExchangeStorage;
 
-    public PFTLMAXEventsClient(List<Instrument> InstrumentList, String Exchange, ExchangeStorage exchangeStorage){
+    //Connector run type
+    RunType ConnectorType;
+
+    public PFTLMAXEventsClient(List<Instrument> InstrumentList, String Exchange, ExchangeStorage exchangeStorage,RunType ConnectorType){
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
         this.currentBalanceMessage = new BalanceMessage(this.Exchange);
         this.currentSingleOrderMessage = new SingleOrderMessage();
         this.currentExchangeStorage = exchangeStorage;
+        this.ConnectorType=ConnectorType;
 
     }
 
@@ -82,21 +86,28 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         trclog.log(Level.INFO,"Logged in, subscribing");
         trclog.log(Level.INFO,"My accountId is: " + session.getAccountDetails().getAccountId()+" "+session.getAccountDetails().toString());
         //Register LMAX listeners
-        session.registerAccountStateEventListener(this);
-        session.registerOrderBookEventListener(this);
-        session.registerStreamFailureListener(this);
-        session.registerOrderEventListener(this);
-        session.registerInstructionRejectedEventListener(this);
-        session.registerExecutionEventListener(this);
-        session.registerPositionEventListener(this);
+        if(ConnectorType == RunType.FULLTRADE || ConnectorType==RunType.ALL) {
+            session.registerAccountStateEventListener(this);
+            session.registerStreamFailureListener(this);
+            session.registerOrderEventListener(this);
+            session.registerInstructionRejectedEventListener(this);
+            session.registerExecutionEventListener(this);
+            session.registerPositionEventListener(this);
 
-        //Subscribe to messages
-        subscribe(session, new PositionSubscriptionRequest(), "Positions");
-        subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
-
-        for(Instrument instrument : this.InstrumentList) {
-            subscribeToInstrument(session, Long.parseLong(instrument.GetExchangeSymbol()));
+            //Subscribe to messages
+            subscribe(session, new PositionSubscriptionRequest(), "Positions");
+            subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
         }
+        if(ConnectorType==RunType.ALL || ConnectorType==RunType.FULLMARKET) {
+            session.registerOrderBookEventListener(this);
+            for(Instrument instrument : this.InstrumentList) {
+                subscribeToInstrument(session, Long.parseLong(instrument.GetExchangeSymbol()));
+            }
+        }
+
+
+
+
 
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable()
         {
@@ -105,17 +116,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             {
                 try
                 {
-                    //HashMap<String,classes.trading.Order> ord = new HashMap<>();
-                    //ord.put("TEST", new classes.trading.Order());
-                    //currentOrderSnapshotMessage.setOrdersSnapshot(ord);
+                    int storeTime = 3;
                     trclog.log(Level.INFO,"Sending:"+currentOrderSnapshotMessage.getClass().toString()+": "+currentOrderSnapshotMessage.toString());
                     while (true)
                     {
                     //   Sending something scheduled
-                    //    currentOrderSnapshotMessage.setOrdersSnapshot(OrdersState);
-                        //wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage,10);
-                        CleanUpTemp(3);
-                        Thread.sleep(3000);
+                        CleanUpTemp(storeTime);
+                        synchronized (currentExchangeStorage.getWorkingOrders()) {
+                            currentOrderSnapshotMessage.setOrdersSnapshot(currentExchangeStorage.getTempOrders());
+                            wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage, 10);
+                            Thread.sleep(storeTime * 1000);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -129,20 +140,19 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         session.start();
     }
     public void CleanUpTemp(int unusedTimeSec){
-        trclog.log(Level.INFO,"CleanUp: "+String.valueOf(unusedTimeSec)+" sec");
+        trclog.log(Level.INFO,"CleanUp TEMP storage , store-time: "+String.valueOf(unusedTimeSec)+" sec");
         long CurrentTimestamp = currentTimeMillis();
         Set<String> toRemoveId = new HashSet<>();
         synchronized (currentExchangeStorage.getTempOrders()){
             for(Map.Entry<String, classes.trading.Order> orderEntry: currentExchangeStorage.getTempOrders().entrySet()){
                 long diff = CurrentTimestamp - orderEntry.getValue().getLastUpdate();
-                trclog.log(Level.INFO,"Clean check "+orderEntry.getKey()+" "+String.valueOf(diff));
                 if(CurrentTimestamp - orderEntry.getValue().getLastUpdate() > unusedTimeSec*1000){
                     toRemoveId.add(orderEntry.getKey());
-                    //currentExchangeStorage.getTempOrders().remove(orderEntry.getKey());
-                    trclog.log(Level.INFO,"CleanedUp: "+orderEntry.getKey());
                 }
             }
+            int count = currentExchangeStorage.getTempOrders().size();
             currentExchangeStorage.getTempOrders().keySet().removeAll(toRemoveId);
+            trclog.log(Level.INFO,"Cleanup TEMP storage before: "+String.valueOf(count)+" ,after: "+String.valueOf(currentExchangeStorage.getTempOrders().size()));
         }
 
     }
@@ -307,7 +317,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         currentBBOMessage.setBid_size(Bid_Size);
         currentBBOMessage.setInstrument(String.valueOf(instrument_id));
         currentBBOMessage.setTimestamp(orderBookEvent.getTimeStamp());
-        //wsController.SendBBOPointMessage(currentBBOMessage);
+        wsController.SendBBOPointMessage(currentBBOMessage);
     }
 
     @Override
