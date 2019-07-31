@@ -5,10 +5,14 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/context
-        http://www.springframework.org/schema/context/spring-context.xsd"
+        http://www.springframework.org/schema/context/spring-context.xsd">
 
->
         <context:property-placeholder location="classpath:lmax.properties" />
+
+    <bean id="ExchangeStorage" class="classes.trading.ExchangeStorage">
+        <constructor-arg name="exchangeName" value="${LMAX.exchange.name}"/>
+        <constructor-arg name="account" value="${LMAX.Credentials.account}"/>
+    </bean>
 
         <bean id="ExchangeConnector"
               class="Exchange.LMAXConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
@@ -26,5 +30,7 @@
                     <value>5013</value>
                 </list>
             </constructor-arg>
+            <constructor-arg name="exchangeStorage" ref="ExchangeStorage" />
         </bean>
+
 </beans>

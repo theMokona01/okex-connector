@@ -1,6 +1,7 @@
 package Exchange;
 
 import classes.WebSocket.ServerWSController;
+import classes.trading.ExchangeStorage;
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
 import com.lmax.api.account.LoginRequest;
@@ -20,6 +21,8 @@ public class LMAXConnector implements ExchangeConnector {
     private String Exchange;
     //Logger variables
     private Logger trclog;
+    //Storage variables
+    //ExchangeStorage currentExchangeDataStrage;
 
     @Override
     public void DoInitConnector() {
@@ -31,22 +34,23 @@ public class LMAXConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public LMAXConnector(String url, String login, String password, String Exchange, String[] Instruments) {
+    public LMAXConnector(String url, String login, String password, String Exchange, String[] Instruments, ExchangeStorage exchangeStorage) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
                     .put("login", login)
                     .put("password", password);
             this.Exchange=Exchange;
-            InitConnector(Credentials,Instruments);
+            InitConnector(Credentials,Instruments,exchangeStorage);
             trclog = Logger.getLogger(LMAXConnector.class.getName());
+            //currentExchangeDataStrage = exchangeStorage;
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
     @Override
-    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments) {
+    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments,ExchangeStorage exchangeStorage) {
         try {
             if (Credentials.has("url") && Credentials.has("login") && Credentials.has("password")) {
                 try {
@@ -64,7 +68,7 @@ public class LMAXConnector implements ExchangeConnector {
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
-                    Connector = new PFTLMAXEventsClient(InstrumentList,this.Exchange);
+                    Connector = new PFTLMAXEventsClient(InstrumentList,this.Exchange,exchangeStorage);
                     //this need run in CoreThread
                     new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
                     //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);

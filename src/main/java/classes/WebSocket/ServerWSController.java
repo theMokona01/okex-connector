@@ -93,6 +93,12 @@ public class ServerWSController {
                 messagingTemplate.convertAndSend(OrdersSnapshotSendPoint,message);
     }
 
+    //Broadcast sending InfoMessage
+    public void SendInfoPointMessage(InfoMessage message){
+        trclog.log(Level.INFO,message.getClass().toString()+": "+message.toString());
+        messagingTemplate.convertAndSend(InfoSendPoint,message);
+    }
+
     //Balance command point
     @MessageMapping(CommandBalancePoint)
     @SendTo(BBOSendPoint)

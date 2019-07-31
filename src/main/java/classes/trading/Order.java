@@ -46,6 +46,7 @@ public class Order {
         Strategy = strategy;
         Exchange = exchange;
         Symbol = symbol;
+
         UserSymbol = userSymbol;
         LeftSymbol = leftSymbol;
         RightSymbol = rightSymbol;
