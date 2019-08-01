@@ -1,15 +1,26 @@
 package classes.WebSocket.messages;
 
+import classes.Enums.OrderSnapShotType;
 import classes.trading.Order;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.HashMap;
 
 public class OrdersSnapshotMessage {
-    HashMap<String, Order> OrdersSnapshot;
+    private HashMap<String, Order> OrdersSnapshot;
+    private OrderSnapShotType orderSnapShotType;
 
     public OrdersSnapshotMessage() {
         this.OrdersSnapshot = new HashMap<>();
+        this.orderSnapShotType=OrderSnapShotType.UNKNOWN;
+    }
+
+    public OrderSnapShotType getOrderSnapShotType() {
+        return orderSnapShotType;
+    }
+
+    public void setOrderSnapShotType(OrderSnapShotType orderSnapShotType) {
+        this.orderSnapShotType = orderSnapShotType;
     }
 
     public HashMap<String, Order> getOrdersSnapshot() {

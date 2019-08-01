@@ -11,7 +11,7 @@ public interface ExchangeConnector {
 
   //Core
   ExchangeConnector InitConnector(JSONObject Credentials, String[] Instruments, ExchangeStorage exchangeStorage, RunType connectorType);
-  RequestResponse SendOrder(Order order);
+  RequestResponse SendOrder(classes.trading.Order order);
   RequestResponse CancelOrder(Order order);
   RequestResponse CancellAllOrders();
   RequestResponse GetOpenOrders();

@@ -36,6 +36,7 @@ public class ServerWSController {
     static final String CommandPricePoint = "/pricepoint";
     static final String CommandHelloPoint = "/hello";
     static final String CommandDefaultPoint = "/command";
+    static final String CommandOrderPoint = "/order";
     //static final String CommandOrderManagementPoint = "/order";
 
     //Client listeners endpoints
@@ -137,11 +138,11 @@ public class ServerWSController {
     }
 
     //Command point for orders management
-    @MessageMapping(CommandOrderSendPoint)
+    @MessageMapping(CommandOrderPoint)
     @SendTo(CommandOrderSendPoint)
     public CommandMessage orderMsgDog(@Payload String message) throws Exception {
         //CommandMessage cmdMsg = message.getPayload().getClass().toString();
-        trclog.log(Level.INFO,"Received on point "+CommandOrderSendPoint+": "+message);//.getPayload().toString());
+        trclog.log(Level.INFO,"Received on point "+CommandOrderPoint+": "+message);//.getPayload().toString());
         Gson gson = new Gson();
         CommandMessage cmd = gson.fromJson(message,CommandMessage.class);
         cmd.DeserializeOrder();
@@ -150,7 +151,8 @@ public class ServerWSController {
         if(cmd.getCommand() == Commands.ORDERCOMMAND){
             switch(currentCommand){
                 case PLACE:
-                    exchangeConnector.Destroy();
+                    trclog.log(Level.INFO,"Sending order "+cmd.getOrder().toString());
+                    exchangeConnector.SendOrder(cmd.getOrder());
                     cmd.setStatus(CommandStatus.EXECUTED);
                     break;
                 case CANCEL:

@@ -1,6 +1,8 @@
 package Exchange;
 
 import classes.Enums.OrderSide;
+import classes.Enums.OrderSnapShotType;
+import classes.Enums.OrderStatus;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.*;
 import classes.trading.ExchangeStorage;
@@ -58,10 +60,10 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
 
     //Connector storage variables
-    ExchangeStorage currentExchangeStorage;
+    private ExchangeStorage currentExchangeStorage;
 
     //Connector run type
-    RunType ConnectorType;
+    private RunType ConnectorType;
 
     public PFTLMAXEventsClient(List<Instrument> InstrumentList, String Exchange, ExchangeStorage exchangeStorage,RunType ConnectorType){
         this.Exchange = Exchange;
@@ -73,8 +75,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
 
     }
 
+    public ExchangeStorage getCurrentExchangeStorage() {
+        return currentExchangeStorage;
+    }
+
+    public void setCurrentExchangeStorage(ExchangeStorage currentExchangeStorage) {
+        this.currentExchangeStorage = currentExchangeStorage;
+    }
+
     public void setWsController(ServerWSController wsController) {
         this.wsController = wsController;
+        currentExchangeStorage.setWsController(wsController);
     }
     public Session getLmaxSession(){
         return this.currentSession;
@@ -116,17 +127,17 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             {
                 try
                 {
-                    int storeTime = 3;
+                    int storeTime = 10;
                     trclog.log(Level.INFO,"Sending:"+currentOrderSnapshotMessage.getClass().toString()+": "+currentOrderSnapshotMessage.toString());
                     while (true)
                     {
-                    //   Sending something scheduled
-                        CleanUpTemp(storeTime);
-                        synchronized (currentExchangeStorage.getWorkingOrders()) {
-                            currentOrderSnapshotMessage.setOrdersSnapshot(currentExchangeStorage.getTempOrders());
-                            wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage, 10);
+                    //  Sending scheduled ordersnapshot
+                        currentExchangeStorage.CleanUpTemp(storeTime);
+                        //synchronized (currentExchangeStorage.getWorkingOrders()) {
+                            //currentOrderSnapshotMessage.setOrdersSnapshot(currentExchangeStorage.getTempOrders());
+                            //wsController.SendOrderSnapshotPointMessage(currentOrderSnapshotMessage, 10);
                             Thread.sleep(storeTime * 1000);
-                        }
+                        //}
                     }
                 }
                 catch (Exception e)
@@ -139,48 +150,40 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         this.currentSession = session;
         session.start();
     }
-    public void CleanUpTemp(int unusedTimeSec){
-        trclog.log(Level.INFO,"CleanUp TEMP storage , store-time: "+String.valueOf(unusedTimeSec)+" sec");
-        long CurrentTimestamp = currentTimeMillis();
-        Set<String> toRemoveId = new HashSet<>();
-        synchronized (currentExchangeStorage.getTempOrders()){
-            for(Map.Entry<String, classes.trading.Order> orderEntry: currentExchangeStorage.getTempOrders().entrySet()){
-                long diff = CurrentTimestamp - orderEntry.getValue().getLastUpdate();
-                if(CurrentTimestamp - orderEntry.getValue().getLastUpdate() > unusedTimeSec*1000){
-                    toRemoveId.add(orderEntry.getKey());
-                }
-            }
-            int count = currentExchangeStorage.getTempOrders().size();
-            currentExchangeStorage.getTempOrders().keySet().removeAll(toRemoveId);
-            trclog.log(Level.INFO,"Cleanup TEMP storage before: "+String.valueOf(count)+" ,after: "+String.valueOf(currentExchangeStorage.getTempOrders().size()));
-        }
 
-    }
 
     public void SendOrder(classes.trading.Order limitOrder){
+        //Convert order params in current_exchange format
         FixedPointNumber limitPrice = FixedPointNumber.valueOf(limitOrder.getPrice().toString());
         double lSize = Math.abs(limitOrder.getSize());
         if(limitOrder.getSide() == OrderSide.SELL){
             lSize=lSize*(-1);
         }
-        synchronized (currentExchangeStorage.getOrderRelations()) {
-            if(currentExchangeStorage.getOrderRelations().containsKey(limitOrder.getInstructionKey())){
-                trclog.log(Level.INFO,limitOrder.getInstructionKey()+" exist in current storage(duplicated)");
-            }else {
-                currentExchangeStorage.getOrderRelations().put(limitOrder.getInstructionKey(),null);
-            }
-        }
         FixedPointNumber limitSize = FixedPointNumber.valueOf(String.valueOf(lSize));
+
+        //Insert order instruction id from client to storage with null id from exchange, because exchange don't
+        //respond yet, place order with order instruction id to storage
+        currentExchangeStorage.putNewOrderRelation(limitOrder);
+
+        //Place order and get response from exchange with order ID or instructionID(LMAX)
         currentSession.placeLimitOrder(new LimitOrderSpecification(Long.parseLong(limitOrder.getSymbol()),limitPrice
                 , limitSize, TimeInForce.GOOD_TIL_CANCELLED), new OrderCallback()
         {
             @Override
             public void onSuccess(String instructionId) {
                 trclog.log(Level.INFO, "Order instruction_id: " + instructionId);
+                //currentExchangeStorage.putNewOrderRelation();
                 synchronized (currentExchangeStorage.getOrderRelations()) {
                     currentExchangeStorage.getOrderRelations().replace(limitOrder.getInstructionKey(), instructionId);
                 }
-                //Send relation to client
+                trclog.log(Level.INFO,"Order accepted by exchange: "+instructionId);
+                wsController.SendInfoPointMessage(new InfoMessage(" Order with instruction "+limitOrder.getInstructionKey()+" accepted by exchange: "+instructionId));
+                //Distribute order in storage
+                synchronized (getCurrentExchangeStorage()){
+                    currentExchangeStorage.distributeNewOrderId(limitOrder.getInstructionKey(),instructionId, OrderStatus.ACCEPTED);
+                }
+
+                //Send relation to client for information
                 InfoMessage response = new InfoMessage(limitOrder.getID()+":"+
                         instructionId);
                 wsController.SendInfoPointMessage(response);
@@ -189,7 +192,9 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             @Override
             public void onFailure(FailureResponse failureResponse)
             {
+                //Log and sending failure response to client
                 trclog.log(Level.WARNING,failureResponse.toString());
+                wsController.SendInfoPointMessage(new InfoMessage(failureResponse.toString()));
             }
         });
     }
@@ -198,10 +203,6 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     public void notifySessionDisconnected()
     {
         trclog.log(Level.WARNING,"Session disconnected");
-        /*System.out.println("notifySessionDisconnected");
-        Runnable LmaxRunner = new PfLmax("Profluent", "Il&09IsHA!KbbeR%", "https://trade.lmaxtrader.com/", "LMAX",InstrumentList); // or an anonymous class, or lambda...
-        Thread LmaxThread = new Thread(LmaxRunner);
-        LmaxThread.start();*/
     }
 
 
@@ -233,6 +234,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notify(InstructionRejectedEvent instructionRejected)
     {
+        String rejectedId = instructionRejected.getInstructionId();
         trclog.log(Level.INFO,instructionRejected.toString());
     }
 
@@ -248,41 +250,33 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         messageOrder.setSymbol(String.valueOf(order.getInstrumentId()));
         messageOrder.setFilled(Double.parseDouble(order.getFilledQuantity().toString()));
         messageOrder.setSize(Math.abs(Double.parseDouble(order.getQuantity().toString())));
+        messageOrder.setCancelled_qty(Double.parseDouble(order.getCancelledQuantity().toString()));
         messageOrder.setLastUpdate(currentTimeMillis());
         if(Double.parseDouble(order.getQuantity().toString()) < 0){
             messageOrder.setSide(OrderSide.SELL);
         }else{
             messageOrder.setSide(OrderSide.BUY);
         }
-        //classes.trading.Order cOrder = this.currentOrder;
-        if(this.OrdersState.containsKey(orderId)) {
-            //OrdersState.replace(orderId,cOrder);
-        }else{
-                //if(OrdersState.size() < 30) {
-                    //OrdersState.put(orderId, cOrder);
-                //}
-        }
+        messageOrder.setStatus(detectOrderStatus(order,false));
+
+
+
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());
         //Distibute order message
-        synchronized (currentExchangeStorage.getTempOrders()) {
-            if(currentExchangeStorage.getWorkingOrders().containsKey(messageOrder.getExchangeID())) {
-                currentExchangeStorage.updateWorkingOrder(messageOrder);
-            }else{
-                if(currentExchangeStorage.getTempOrders().containsKey(messageOrder.getExchangeID())){
-                    currentExchangeStorage.getTempOrders().replace(messageOrder.getExchangeID(),messageOrder);
-                    trclog.log(Level.INFO,"Update order:"+messageOrder.getExchangeID());
+        currentExchangeStorage.distributeExchangeOrderMessage(messageOrder);
 
-                }else{
-                 currentExchangeStorage.getTempOrders().put(messageOrder.getExchangeID(),messageOrder);
-                    trclog.log(Level.INFO,"Put new order:"+messageOrder.getExchangeID());
-                }
-            }
-        }
         trclog.log(Level.INFO,messageOrder.toString());
         trclog.log(Level.INFO,currentExchangeStorage.toString());
         //Sending order to client
         this.currentSingleOrderMessage.setOrder(messageOrder);
         wsController.SendSingleOrderPointMessage(this.currentSingleOrderMessage);
+
+        OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
+        synchronized (getCurrentExchangeStorage().getWorkingOrders()) {
+            currentWorkingSnapshot.setOrdersSnapshot(getCurrentExchangeStorage().getWorkingOrders());
+            currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+            wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot, 10);
+        }
 
     }
 
@@ -342,7 +336,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
              this.currentBalanceMessage.setSymbolBalance(Symbol,Cash+Credit);
         }
         currentBalanceMessage.setExchange(this.Exchange);
-        wsController.SendBalancePointMessage(this.currentBalanceMessage);
+        //wsController.SendBalancePointMessage(this.currentBalanceMessage);
     }
 
     private void subscribe(final Session session, final SubscriptionRequest request, final String subscriptionDescription)
@@ -377,6 +371,25 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                 trclog.log(Level.WARNING,"Failed to subscribe to instrument %"+String.valueOf(instrumentId)+" "+failureResponse);
             }
         });
+    }
+
+    private OrderStatus detectOrderStatus(Order LmaxOrderInstruction,boolean isRejected){
+        OrderStatus orderStatus = OrderStatus.UNKNOWN;
+        if(Double.parseDouble(LmaxOrderInstruction.getCancelledQuantity().toString()) > 0)
+        {
+            orderStatus=OrderStatus.CANCELLED;
+        }else if(Double.parseDouble(LmaxOrderInstruction.getFilledQuantity().toString()) > 0){
+            orderStatus=OrderStatus.PART_FILLED;
+        }else if(LmaxOrderInstruction.getQuantity() == LmaxOrderInstruction.getFilledQuantity()){
+            orderStatus=OrderStatus.FULL_FILLED;
+        }else if(LmaxOrderInstruction.getFilledQuantity().longValue() == 0){
+            orderStatus=OrderStatus.ACCEPTED;
+        }
+
+        if(isRejected){
+            orderStatus=OrderStatus.REJECTED;
+        }
+        return orderStatus;
     }
 
 }

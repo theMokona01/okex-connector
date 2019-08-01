@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.System.exit;
+
 public class LMAXConnector implements ExchangeConnector {
     public PFTLMAXEventsClient Connector;
     private String Exchange;
@@ -83,7 +85,10 @@ public class LMAXConnector implements ExchangeConnector {
     }
 
     @Override
-    public RequestResponse SendOrder(Order order) {
+    public RequestResponse SendOrder(classes.trading.Order order) {
+        System.out.println("HERE SEND");
+        //exit(1);
+        Connector.SendOrder(order);
         return null;
     }
 

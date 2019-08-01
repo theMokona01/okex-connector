@@ -6,5 +6,6 @@ public enum OrderStatus {
     PART_FILLED,
     FULL_FILLED,
     CANCELLED,
-    REJECTED
+    REJECTED,
+    UNKNOWN
 }

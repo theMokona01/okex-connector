@@ -1,10 +1,21 @@
 package classes.trading;
 
+import Exchange.PFTLMAXEventsClient;
+import classes.Enums.OrderSnapShotType;
+import classes.Enums.OrderStatus;
+import classes.WebSocket.ServerWSController;
+import classes.WebSocket.messages.OrdersSnapshotMessage;
 import interfaces.ConnectorStorage;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.lang.System.currentTimeMillis;
 
 public class ExchangeStorage implements ConnectorStorage {
     private String ExchangeName;
@@ -21,8 +32,16 @@ public class ExchangeStorage implements ConnectorStorage {
     private HashMap<String,Order> FilledOrders;
     //Temp storage for unknown orders
     private HashMap<String,Order> TempOrders;
+    //Temp storage for accepted orders, which wait response from exchange
+    private HashMap<String,Order> NewOrders;
     //Storage for strategy positions
     private HashMap<String,StrategyPosition> StrategiesPositions;
+    //WS controller for user sending
+    private ServerWSController wsController;
+
+
+    //Logger variables
+    private Logger trclog = Logger.getLogger(this.getClass().getName());
 
 
     public ExchangeStorage(String exchangeName, String account) {
@@ -40,6 +59,15 @@ public class ExchangeStorage implements ConnectorStorage {
         TempOrders = new HashMap<>();
         StrategiesPositions = new HashMap<>();
         OrderRelations = new HashMap<>();
+        NewOrders = new HashMap<>();
+    }
+
+    public ServerWSController getWsController() {
+        return wsController;
+    }
+
+    public void setWsController(ServerWSController wsController) {
+        this.wsController = wsController;
     }
 
     public String getExchangeName() {
@@ -114,7 +142,136 @@ public class ExchangeStorage implements ConnectorStorage {
         StrategiesPositions = strategiesPositions;
     }
 
+    public HashMap<String, Order> getNewOrders() {
+        return NewOrders;
+    }
+
+    public void setNewOrders(HashMap<String, Order> newOrders) {
+        NewOrders = newOrders;
+    }
+
     public void updateWorkingOrder(Order order){
+        if(WorkingOrders.containsKey(order.getExchangeID())){
+            synchronized (getWorkingOrders().get(order.getExchangeID())){
+                Order changeOrder = WorkingOrders.get(order.getExchangeID());
+                changeOrder.setFilled(order.getFilled());
+                changeOrder.setExecuted(order.getExecuted());
+                changeOrder.setLastUpdate(order.getLastUpdate());
+                changeOrder.setCancelled_qty(order.getCancelled_qty());
+                changeOrder.setStatus(order.getStatus());
+            }
+        }
+    }
+
+    public void putNewOrderRelation(Order order){
+        //Logging
+        trclog.log(Level.INFO,Thread.currentThread()
+                .getStackTrace()[1]
+                .getMethodName()+" "+order.toString());
+
+        synchronized (getOrderRelations()) {
+            if(OrderRelations.containsKey(order.getInstructionKey())){
+                trclog.log(Level.INFO,order.getInstructionKey()+" exist in current storage(duplicated)");
+            }else {
+                OrderRelations.put(order.getInstructionKey(),null);
+            }
+
+        }
+
+        synchronized ((getNewOrders())){
+            if(NewOrders.containsKey(order.getInstructionKey())){
+                trclog.log(Level.INFO,order.getInstructionKey()+" exist in current storage(duplicated)");
+            }else {
+                NewOrders.put(order.getInstructionKey(),order);
+            }
+        }
+
+    }
+    public void updateOrderRelation(String clientInstructionID,String exchangeOrderId) {
+        trclog.log(Level.INFO,Thread.currentThread()
+                .getStackTrace()[1]
+                .getMethodName()+" "+clientInstructionID+" "+exchangeOrderId);
+
+        synchronized (getOrderRelations()) {
+            OrderRelations.replace(clientInstructionID, exchangeOrderId);
+        }
+    }
+
+    public void distributeNewOrderId(String clientInstructionId, String exchangeId, OrderStatus status){
+        //Logging
+        String func = Thread.currentThread().getStackTrace()[1].getMethodName();
+        trclog.log(Level.WARNING,func+" "+clientInstructionId+" "+exchangeId+" "+status.toString());
+        updateOrderRelation(clientInstructionId,exchangeId);
+        trclog.log(Level.WARNING,func+"Step 1");
+        //If this order was sent by client
+        if(NewOrders.containsKey(clientInstructionId)) {
+            trclog.log(Level.WARNING,func+"Step 2 ");
+            Order ClientOrder = NewOrders.get(clientInstructionId);
+            trclog.log(Level.WARNING,func+"Step 2.1.1 "+NewOrders.toString());
+            trclog.log(Level.WARNING,func+"Step 2.1.2 "+ClientOrder.toString());
+            ClientOrder.setExchangeID(exchangeId);
+            ClientOrder.setLastUpdate(currentTimeMillis());
+            ClientOrder.setStatus(status);
+            //Maybe we have messages from exchange stream for this order
+            if(TempOrders.containsKey(exchangeId)){
+                trclog.log(Level.WARNING,func+"Step 2.2");
+                Order existOrder = TempOrders.get(exchangeId);
+                ClientOrder.setFilled(existOrder.getFilled());
+                ClientOrder.setExecuted(existOrder.getExecuted());
+                ClientOrder.setCancelled_qty(existOrder.getCancelled_qty());
+                ClientOrder.setStatus(existOrder.getStatus());
+                ClientOrder.setLastUpdate(existOrder.getLastUpdate());
+            }
+            trclog.log(Level.WARNING,func+"Step 3");
+            WorkingOrders.put(ClientOrder.getExchangeID(),ClientOrder);
+            trclog.log(Level.WARNING,func+"Step 4");
+            trclog.log(Level.INFO,func+ClientOrder.toString());
+            //Send working orders to client
+            OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
+            currentWorkingSnapshot.setOrdersSnapshot(WorkingOrders);
+            currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+            trclog.log(Level.WARNING,func+"Step 5");
+            wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot,10);
+        }
+    }
+
+    public void distributeExchangeOrderMessage(Order order){
+        //Logging
+        String func = Thread.currentThread().getStackTrace()[1].getMethodName();
+        trclog.log(Level.INFO,func+" "+order.toString());
+
+        synchronized (getTempOrders()) {
+            if(WorkingOrders.containsKey(order.getExchangeID())) {
+                updateWorkingOrder(order);
+            }else{
+                if(TempOrders.containsKey(order.getExchangeID())){
+                    TempOrders.replace(order.getExchangeID(),order);
+                    trclog.log(Level.INFO,"Update order:"+order.getExchangeID());
+
+                }else{
+                    TempOrders.put(order.getExchangeID(),order);
+                    trclog.log(Level.INFO,"Put new order:"+order.getExchangeID());
+                }
+            }
+        }
+    }
+
+
+    public void CleanUpTemp(int unusedTimeSec){
+        trclog.log(Level.INFO,"CleanUp TEMP storage , store-time: "+String.valueOf(unusedTimeSec)+" sec");
+        long CurrentTimestamp = currentTimeMillis();
+        Set<String> toRemoveId = new HashSet<>();
+        synchronized (this.TempOrders){
+            for(Map.Entry<String, classes.trading.Order> orderEntry: TempOrders.entrySet()){
+                long diff = CurrentTimestamp - orderEntry.getValue().getLastUpdate();
+                if(CurrentTimestamp - orderEntry.getValue().getLastUpdate() > unusedTimeSec*1000){
+                    toRemoveId.add(orderEntry.getKey());
+                }
+            }
+            int count = TempOrders.size();
+            TempOrders.keySet().removeAll(toRemoveId);
+            trclog.log(Level.INFO,"Cleanup TEMP storage before: "+String.valueOf(count)+" ,after: "+String.valueOf(TempOrders.size()));
+        }
 
     }
 
