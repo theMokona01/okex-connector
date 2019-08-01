@@ -86,8 +86,6 @@ public class LMAXConnector implements ExchangeConnector {
 
     @Override
     public RequestResponse SendOrder(classes.trading.Order order) {
-        System.out.println("HERE SEND");
-        //exit(1);
         Connector.SendOrder(order);
         return null;
     }

@@ -5,5 +5,6 @@ public enum OrderSnapShotType {
     TEMP,
     CANCELLED,
     REJECTED,
+    FILLED,
     UNKNOWN
 }

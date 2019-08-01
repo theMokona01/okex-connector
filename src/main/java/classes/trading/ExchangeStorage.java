@@ -176,6 +176,14 @@ public class ExchangeStorage implements ConnectorStorage {
                         }
                     }
                 }
+                if(currentStatus == OrderStatus.FULL_FILLED){
+                    synchronized (getFilledOrders()){
+                        if(!FilledOrders.containsKey(changeOrder.getExchangeID())){
+                            FilledOrders.put(changeOrder.getExchangeID(),changeOrder);
+                            WorkingOrders.remove(order.getExchangeID());
+                        }
+                    }
+                }
             }
         }
         return currentStatus;
@@ -241,13 +249,33 @@ public class ExchangeStorage implements ConnectorStorage {
                 ClientOrder.setLastUpdate(existOrder.getLastUpdate());
             }
             trclog.log(Level.WARNING,func+"Step 3");
-            WorkingOrders.put(ClientOrder.getExchangeID(),ClientOrder);
+            OrderStatus orderStatus = ClientOrder.getStatus();
+            OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
+            switch(orderStatus) {
+                case CANCELLED:
+                    CancelledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                    currentWorkingSnapshot.setOrdersSnapshot(CancelledOrders);
+                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.CANCELLED);
+                    break;
+                case REJECTED:
+                    RejectedOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                    currentWorkingSnapshot.setOrdersSnapshot(RejectedOrders);
+                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.REJECTED);
+                case FULL_FILLED:
+                    FilledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                    currentWorkingSnapshot.setOrdersSnapshot(FilledOrders);
+                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.FILLED);
+                    break;
+                default:
+                    WorkingOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                    currentWorkingSnapshot.setOrdersSnapshot(WorkingOrders);
+                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+                    break;
+            }
             trclog.log(Level.WARNING,func+"Step 4");
             trclog.log(Level.INFO,func+ClientOrder.toString());
             //Send working orders to client
-            OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
-            currentWorkingSnapshot.setOrdersSnapshot(WorkingOrders);
-            currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+
             trclog.log(Level.WARNING,func+"Step 5");
             wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot,10);
         }
@@ -260,15 +288,16 @@ public class ExchangeStorage implements ConnectorStorage {
 
         synchronized (getTempOrders()) {
             if(WorkingOrders.containsKey(order.getExchangeID())) {
+                trclog.log(Level.INFO,func+" Update_Order in WorkingOrders"+order.toString());
                 updateWorkingOrder(order);
             }else{
                 if(TempOrders.containsKey(order.getExchangeID())){
                     TempOrders.replace(order.getExchangeID(),order);
-                    trclog.log(Level.INFO,"Update order:"+order.getExchangeID());
+                    trclog.log(Level.INFO,"Update order in TempStorage"+order.getExchangeID());
 
                 }else{
                     TempOrders.put(order.getExchangeID(),order);
-                    trclog.log(Level.INFO,"Put new order:"+order.getExchangeID());
+                    trclog.log(Level.INFO,"Put New Order to TempStorage:"+order.getExchangeID());
                 }
             }
         }
@@ -300,7 +329,13 @@ public class ExchangeStorage implements ConnectorStorage {
     }
 
     @Override
-    public String toString(){
-        return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    public String toString() {
+        while(true){
+        try {
+            return org.apache.commons.lang3.builder.ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+         }catch(Exception e){
+            e.printStackTrace();
+        }
+        }
     }
 }
