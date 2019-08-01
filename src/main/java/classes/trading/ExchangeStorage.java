@@ -150,17 +150,35 @@ public class ExchangeStorage implements ConnectorStorage {
         NewOrders = newOrders;
     }
 
-    public void updateWorkingOrder(Order order){
+    public OrderStatus updateWorkingOrder(Order order){
+        OrderStatus currentStatus = order.getStatus();
         if(WorkingOrders.containsKey(order.getExchangeID())){
-            synchronized (getWorkingOrders().get(order.getExchangeID())){
+            synchronized (getWorkingOrders()){
                 Order changeOrder = WorkingOrders.get(order.getExchangeID());
                 changeOrder.setFilled(order.getFilled());
                 changeOrder.setExecuted(order.getExecuted());
                 changeOrder.setLastUpdate(order.getLastUpdate());
                 changeOrder.setCancelled_qty(order.getCancelled_qty());
                 changeOrder.setStatus(order.getStatus());
+                if(currentStatus == OrderStatus.CANCELLED){
+                    synchronized (getCancelledOrders()) {
+                        if (!CancelledOrders.containsKey(changeOrder.getExchangeID())) {
+                            CancelledOrders.put(changeOrder.getExchangeID(), changeOrder);
+                            WorkingOrders.remove(order.getExchangeID());
+                        }
+                    }
+                }
+                if(currentStatus == OrderStatus.REJECTED){
+                    synchronized (getRejectedOrders()){
+                        if(!RejectedOrders.containsKey(changeOrder.getExchangeID())){
+                            RejectedOrders.put(changeOrder.getExchangeID(),changeOrder);
+                            WorkingOrders.remove(order.getExchangeID());
+                        }
+                    }
+                }
             }
         }
+        return currentStatus;
     }
 
     public void putNewOrderRelation(Order order){
@@ -235,7 +253,7 @@ public class ExchangeStorage implements ConnectorStorage {
         }
     }
 
-    public void distributeExchangeOrderMessage(Order order){
+    public OrderStatus distributeExchangeOrderMessage(Order order){
         //Logging
         String func = Thread.currentThread().getStackTrace()[1].getMethodName();
         trclog.log(Level.INFO,func+" "+order.toString());
@@ -254,6 +272,7 @@ public class ExchangeStorage implements ConnectorStorage {
                 }
             }
         }
+        return order.getStatus();
     }
 
 

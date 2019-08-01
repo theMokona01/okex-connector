@@ -263,19 +263,46 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
 
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());
         //Distibute order message
-        currentExchangeStorage.distributeExchangeOrderMessage(messageOrder);
+        OrderStatus returnSnapStatus = currentExchangeStorage.distributeExchangeOrderMessage(messageOrder);
 
         trclog.log(Level.INFO,messageOrder.toString());
         trclog.log(Level.INFO,currentExchangeStorage.toString());
+
         //Sending order to client
         this.currentSingleOrderMessage.setOrder(messageOrder);
         wsController.SendSingleOrderPointMessage(this.currentSingleOrderMessage);
 
-        OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
-        synchronized (getCurrentExchangeStorage().getWorkingOrders()) {
-            currentWorkingSnapshot.setOrdersSnapshot(getCurrentExchangeStorage().getWorkingOrders());
-            currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
-            wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot, 10);
+
+
+        //Send working snapshot if order from message in working storage
+        if(returnSnapStatus == OrderStatus.CANCELLED){
+            synchronized (getCurrentExchangeStorage().getCancelledOrders()){
+                if(getCurrentExchangeStorage().getCancelledOrders().containsKey(messageOrder.getExchangeID())){
+                    OrdersSnapshotMessage currentCancelledSnapshot = new OrdersSnapshotMessage();
+                    currentCancelledSnapshot.setOrdersSnapshot(getCurrentExchangeStorage().getCancelledOrders());
+                    currentCancelledSnapshot.setOrderSnapShotType(OrderSnapShotType.CANCELLED);
+                    wsController.SendOrderSnapshotPointMessage(currentCancelledSnapshot, 10);
+                }
+            }
+        } else if(returnSnapStatus == OrderStatus.REJECTED){
+            synchronized (getCurrentExchangeStorage().getRejectedOrders()){
+                if(getCurrentExchangeStorage().getRejectedOrders().containsKey(messageOrder.getExchangeID())){
+                    OrdersSnapshotMessage currentRejectedSnapshot = new OrdersSnapshotMessage();
+                    currentRejectedSnapshot.setOrdersSnapshot(getCurrentExchangeStorage().getRejectedOrders());
+                    currentRejectedSnapshot.setOrderSnapShotType(OrderSnapShotType.REJECTED);
+                    wsController.SendOrderSnapshotPointMessage(currentRejectedSnapshot, 10);
+                }
+            }
+
+        } else {
+            synchronized (getCurrentExchangeStorage().getWorkingOrders()) {
+                if (getCurrentExchangeStorage().getWorkingOrders().containsKey(messageOrder.getExchangeID())) {
+                    OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
+                    currentWorkingSnapshot.setOrdersSnapshot(getCurrentExchangeStorage().getWorkingOrders());
+                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+                    wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot, 10);
+                }
+            }
         }
 
     }
