@@ -8,6 +8,7 @@ import classes.WebSocket.messages.OrdersSnapshotMessage;
 import interfaces.ConnectorStorage;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import javax.enterprise.inject.New;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -231,52 +232,62 @@ public class ExchangeStorage implements ConnectorStorage {
         trclog.log(Level.WARNING,func+"Step 1");
         //If this order was sent by client
         if(NewOrders.containsKey(clientInstructionId)) {
-            trclog.log(Level.WARNING,func+"Step 2 ");
+            //trclog.log(Level.WARNING,func+"Step 2 ");
             Order ClientOrder = NewOrders.get(clientInstructionId);
-            trclog.log(Level.WARNING,func+"Step 2.1.1 "+NewOrders.toString());
-            trclog.log(Level.WARNING,func+"Step 2.1.2 "+ClientOrder.toString());
+
+            //trclog.log(Level.WARNING,func+"Step 2.1.1 "+NewOrders.toString());
+            //trclog.log(Level.WARNING,func+"Step 2.1.2 "+ClientOrder.toString());
             ClientOrder.setExchangeID(exchangeId);
             ClientOrder.setLastUpdate(currentTimeMillis());
             ClientOrder.setStatus(status);
             //Maybe we have messages from exchange stream for this order
+
             if(TempOrders.containsKey(exchangeId)){
-                trclog.log(Level.WARNING,func+"Step 2.2");
-                Order existOrder = TempOrders.get(exchangeId);
-                ClientOrder.setFilled(existOrder.getFilled());
-                ClientOrder.setExecuted(existOrder.getExecuted());
-                ClientOrder.setCancelled_qty(existOrder.getCancelled_qty());
-                ClientOrder.setStatus(existOrder.getStatus());
-                ClientOrder.setLastUpdate(existOrder.getLastUpdate());
+                synchronized (TempOrders.get(exchangeId)) {
+                    trclog.log(Level.WARNING, func + "Step 2.2");
+                    Order existOrder = TempOrders.get(exchangeId);
+                    ClientOrder.setFilled(existOrder.getFilled());
+                    ClientOrder.setExecuted(existOrder.getExecuted());
+                    ClientOrder.setCancelled_qty(existOrder.getCancelled_qty());
+                    ClientOrder.setStatus(existOrder.getStatus());
+                    ClientOrder.setLastUpdate(existOrder.getLastUpdate());
+                }
             }
             trclog.log(Level.WARNING,func+"Step 3");
             OrderStatus orderStatus = ClientOrder.getStatus();
             OrdersSnapshotMessage currentWorkingSnapshot = new OrdersSnapshotMessage();
-            switch(orderStatus) {
-                case CANCELLED:
-                    CancelledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
-                    currentWorkingSnapshot.setOrdersSnapshot(CancelledOrders);
-                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.CANCELLED);
-                    break;
-                case REJECTED:
-                    RejectedOrders.put(ClientOrder.getExchangeID(), ClientOrder);
-                    currentWorkingSnapshot.setOrdersSnapshot(RejectedOrders);
-                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.REJECTED);
-                case FULL_FILLED:
-                    FilledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
-                    currentWorkingSnapshot.setOrdersSnapshot(FilledOrders);
-                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.FILLED);
-                    break;
-                default:
-                    WorkingOrders.put(ClientOrder.getExchangeID(), ClientOrder);
-                    currentWorkingSnapshot.setOrdersSnapshot(WorkingOrders);
-                    currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
-                    break;
-            }
-            trclog.log(Level.WARNING,func+"Step 4");
+            //synchronized (NewOrders.get(ClientOrder.getExchangeID())) {
+                switch (orderStatus) {
+                    case CANCELLED:
+                        CancelledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                        currentWorkingSnapshot.setOrdersSnapshot(CancelledOrders);
+                        currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.CANCELLED);
+                        NewOrders.remove(ClientOrder.getExchangeID());
+                        break;
+                    case REJECTED:
+                        RejectedOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                        currentWorkingSnapshot.setOrdersSnapshot(RejectedOrders);
+                        currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.REJECTED);
+                        NewOrders.remove(ClientOrder.getExchangeID());
+                    case FULL_FILLED:
+                        FilledOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                        currentWorkingSnapshot.setOrdersSnapshot(FilledOrders);
+                        currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.FILLED);
+                        NewOrders.remove(ClientOrder.getExchangeID());
+                        break;
+                    default:
+                        WorkingOrders.put(ClientOrder.getExchangeID(), ClientOrder);
+                        currentWorkingSnapshot.setOrdersSnapshot(WorkingOrders);
+                        currentWorkingSnapshot.setOrderSnapShotType(OrderSnapShotType.WORKING);
+                        NewOrders.remove(ClientOrder.getExchangeID());
+                        break;
+                }
+            //}
+            //trclog.log(Level.WARNING,func+"Step 4");
             trclog.log(Level.INFO,func+ClientOrder.toString());
             //Send working orders to client
 
-            trclog.log(Level.WARNING,func+"Step 5");
+            //trclog.log(Level.WARNING,func+"Step 5");
             wsController.SendOrderSnapshotPointMessage(currentWorkingSnapshot,10);
         }
     }

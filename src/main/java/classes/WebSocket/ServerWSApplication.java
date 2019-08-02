@@ -13,4 +13,5 @@ public class ServerWSApplication{
     public static void main(String[] args) {
         SpringApplication.run(ServerWSApplication.class, args);
     }
+
 }
