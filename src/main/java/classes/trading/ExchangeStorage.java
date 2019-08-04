@@ -317,7 +317,7 @@ public class ExchangeStorage implements ConnectorStorage {
 
 
     public void CleanUpTemp(int unusedTimeSec){
-        trclog.log(Level.INFO,"CleanUp TEMP storage , store-time: "+String.valueOf(unusedTimeSec)+" sec");
+        trclog.log(Level.INFO,"CleanUp TEMP storage , store-time: "+ unusedTimeSec +" sec");
         long CurrentTimestamp = currentTimeMillis();
         Set<String> toRemoveId = new HashSet<>();
         synchronized (this.TempOrders){
@@ -329,7 +329,7 @@ public class ExchangeStorage implements ConnectorStorage {
             }
             int count = TempOrders.size();
             TempOrders.keySet().removeAll(toRemoveId);
-            trclog.log(Level.INFO,"Cleanup TEMP storage before: "+String.valueOf(count)+" ,after: "+String.valueOf(TempOrders.size()));
+            trclog.log(Level.INFO,"Cleanup TEMP storage before: "+ count +" ,after: "+ TempOrders.size());
         }
 
     }

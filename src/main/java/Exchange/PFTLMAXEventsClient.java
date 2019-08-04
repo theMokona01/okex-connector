@@ -302,7 +302,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         OrderStatus returnSnapStatus = currentExchangeStorage.distributeExchangeOrderMessage(messageOrder);
 
         trclog.log(Level.INFO,messageOrder.toString());
-        trclog.log(Level.INFO,currentExchangeStorage.toString());
+        //trclog.log(Level.INFO,currentExchangeStorage.toString());
 
         //Sending order to client
         this.currentSingleOrderMessage.setOrder(messageOrder);

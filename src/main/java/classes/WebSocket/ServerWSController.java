@@ -4,26 +4,25 @@ import classes.Enums.CommandStatus;
 import classes.Enums.Commands;
 import classes.Enums.OrderCommand;
 import classes.WebSocket.messages.*;
-import classes.trading.Order;
+import classes.WebSocket.model.Ticker;
+import classes.WebSocket.repository.TickerRepository;
 import com.google.gson.Gson;
 import interfaces.ExchangeConnector;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.Message;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
-import pf.trading.connector.ConnectorCore;
+import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+//@Service("PFService")
 @Controller
 public class ServerWSController {
     //Exchange connector instances for exchange management
@@ -55,6 +54,8 @@ public class ServerWSController {
 
     @Autowired
     private SimpMessageSendingOperations messagingTemplate;
+    @Autowired
+    private TickerRepository tickerRepository;
 
     public ExchangeConnector getExchangeConnector() {
         return exchangeConnector;
@@ -85,6 +86,7 @@ public class ServerWSController {
     //Broadcast sending SingleExecutionMessage
     public void SendSingleExecutionPointMessage(SingleExecutionMessage message){
         trclog.log(Level.INFO,message.getClass().toString()+": "+message.toString());
+        tickerRepository.save(new Ticker(String.valueOf(System.currentTimeMillis()),221.5, 211.4, 211.4, 211.45, 207.2, 214.3, 206.2, 62449406.56, "2019-07-31T04:52:17.152Z"));
         messagingTemplate.convertAndSend(SingleExecutionSendPoint,message);
     }
 
@@ -104,7 +106,7 @@ public class ServerWSController {
     @MessageMapping(CommandBalancePoint)
     @SendTo(BBOSendPoint)
     public BalanceMessage balanceMsgDog(@Payload String message) throws Exception {
-        trclog.log(Level.INFO,"Received on point /balancepoint: "+message.toString());
+        trclog.log(Level.INFO,"Received on point /balancepoint: "+ message);
         return new BalanceMessage("");//new WSGreeting("Hello, ");// + message.getSubscription_name() + "!");
     }
 
@@ -112,7 +114,7 @@ public class ServerWSController {
     @MessageMapping(CommandPricePoint)
     @SendTo(BBOSendPoint)
     public BBOMessage pricesMsgDog(@Payload String message) throws Exception {
-        trclog.log(Level.INFO,"Received on point /pricepoint: "+message.toString());
+        trclog.log(Level.INFO,"Received on point /pricepoint: "+ message);
         return new BBOMessage();
     }
 
@@ -120,7 +122,7 @@ public class ServerWSController {
     @MessageMapping(CommandHelloPoint)
     @SendTo(InfoSendPoint)
     public InfoMessage helloMsgDog(@Payload String message) throws Exception {
-        trclog.log(Level.INFO,"Received on point /hello: "+message.toString());
+        trclog.log(Level.INFO,"Received on point /hello: "+ message);
         return new InfoMessage("Hello accepted "+message);
     }
 

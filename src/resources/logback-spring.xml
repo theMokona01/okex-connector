@@ -32,24 +32,28 @@
         </rollingPolicy>
     </appender>
 
-    <!--<appender name="db" class="ch.qos.logback.classic.db.DBAppender">
-        <connectionSource
-                class="ch.qos.logback.core.db.DriverManagerConnectionSource">
-            <driverClass>org.postgresql.Driver</driverClass>
-            <url>jdbc:postgresql://localhost:5432/simple</url>
-            <user>postgres</user>
-            <password>root</password>
+    <appender name="DBPostgreSQL" class="ch.qos.logback.classic.db.DBAppender">
+        <connectionSource class="ch.qos.logback.core.db.DataSourceConnectionSource">
+            <dataSource class="com.mchange.v2.c3p0.ComboPooledDataSource">
+                <driverClass>org.postgresql.Driver</driverClass>
+                <jdbcUrl>jdbc:postgresql://95.217.2.217:5432/pflogger</jdbcUrl>
+                <user>postgres</user>
+                <password>ATKroot@781886</password>
+            </dataSource>
         </connectionSource>
-    </appender>-->
+    </appender>
+
 
     <!-- LOG everything at INFO level -->
     <root level="info">
+        <appender-ref ref="DBPostgreSQL" />
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </root>
 
     <!-- LOG "com.pf.lmax_connector*" at TRACE level -->
     <logger name="com.pf.lmax_connector" level="trace" additivity="false">
+        <appender-ref ref="DBPostgreSQL" />
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </logger>
