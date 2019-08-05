@@ -6,6 +6,8 @@ import classes.Enums.OrderStatus;
 import classes.Enums.OrderType;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.*;
+import classes.WebSocket.model.EExecution;
+import classes.WebSocket.model.EOrder;
 import classes.trading.ExchangeStorage;
 import com.lmax.api.*;
 import com.lmax.api.account.*;
@@ -246,17 +248,25 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     @Override
     public void notify(Execution execution)
     {
+        trclog.log(Level.INFO,execution.toString());
+        currentExecution.setId(String.valueOf(execution.getExecutionId()));
+        currentExecution.setOrderId(execution.getOrder().getOriginalInstructionId());
+        currentExecution.setPrice(0.0);//Double.parseDouble(String.valueOf(execution.getPrice().longValue())));
         currentExecution.setFilled(Double.parseDouble(execution.getQuantity().toString()));
         if(Double.parseDouble(execution.getQuantity().toString()) != 0) {
             currentExecution.setExecuted(Double.parseDouble(execution.getPrice().toString())*Double.parseDouble(execution.getQuantity().toString()));
         }
         currentExecution.setTimestamp(currentTimeMillis());
-        trclog.log(Level.INFO,execution.toString());
+
 
         trclog.log(Level.INFO,currentExecution.toString());
         //Send execution to client
         this.currentSingleExecutionMessage.setExecution(this.currentExecution);
         wsController.SendSingleExecutionPointMessage(this.currentSingleExecutionMessage);
+
+        EExecution eexecution = new EExecution(this.Exchange,currentExecution.getId(),currentExecution.getOrderId(),
+                "",currentExecution.getPrice(),currentExecution.getFilled(),0.0,currentTimeMillis());
+        wsController.updateDBexecution(eexecution);
 
     }
 
@@ -296,6 +306,10 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
         }*/
         messageOrder.setStatus(detectOrderStatus(messageOrder,false));
+
+        EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
+                messageOrder.getPrice(),messageOrder.getSize());
+        wsController.updateDBorder(exchangeOrder);
 
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());
         //Distibute order message

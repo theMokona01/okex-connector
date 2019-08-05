@@ -3,7 +3,7 @@ package classes.WebSocket.model;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "eorder")
+@Table
 public class EOrder {
     //check if sender and receiver of object have loaded classes for object
     private static final long serialVersionUID = -2343243243242432341L;

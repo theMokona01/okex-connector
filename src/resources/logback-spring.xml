@@ -46,14 +46,14 @@
 
     <!-- LOG everything at INFO level -->
     <root level="info">
-        <appender-ref ref="DBPostgreSQL" />
+        <!--<appender-ref ref="DBPostgreSQL" />-->
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </root>
 
     <!-- LOG "com.pf.lmax_connector*" at TRACE level -->
     <logger name="com.pf.lmax_connector" level="trace" additivity="false">
-        <appender-ref ref="DBPostgreSQL" />
+        <!--<appender-ref ref="DBPostgreSQL" />-->
         <appender-ref ref="RollingFile" />
         <appender-ref ref="Console" />
     </logger>

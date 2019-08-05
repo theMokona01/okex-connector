@@ -1,5 +1,6 @@
 package classes.WebSocket;
 
+import classes.WebSocket.repository.ExecutionRepository;
 import classes.WebSocket.repository.OrderRepository;
 import classes.WebSocket.repository.TickerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,9 @@ public class ServerWSApplication{
     @Autowired
     TickerRepository repository;
     @Autowired
-    OrderRepository oRepository;
+    OrderRepository orderRepository;
+    @Autowired
+    ExecutionRepository executionRepository;
 
     public static void main(String[] args) {
         SpringApplication.run(ServerWSApplication.class, args);

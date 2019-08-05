@@ -4,7 +4,11 @@ import classes.Enums.CommandStatus;
 import classes.Enums.Commands;
 import classes.Enums.OrderCommand;
 import classes.WebSocket.messages.*;
+import classes.WebSocket.model.EExecution;
+import classes.WebSocket.model.EOrder;
 import classes.WebSocket.model.Ticker;
+import classes.WebSocket.repository.ExecutionRepository;
+import classes.WebSocket.repository.OrderRepository;
 import classes.WebSocket.repository.TickerRepository;
 import com.google.gson.Gson;
 import interfaces.ExchangeConnector;
@@ -56,6 +60,10 @@ public class ServerWSController {
     private SimpMessageSendingOperations messagingTemplate;
     @Autowired
     private TickerRepository tickerRepository;
+    @Autowired
+    OrderRepository orderRepository;
+    @Autowired
+    ExecutionRepository executionRepository;
 
     public ExchangeConnector getExchangeConnector() {
         return exchangeConnector;
@@ -64,6 +72,15 @@ public class ServerWSController {
     public void setExchangeConnector(ExchangeConnector exchangeConnector) {
         this.exchangeConnector = exchangeConnector;
     }
+    //Updateting DB
+    public void updateDBorder(EOrder order){
+        orderRepository.save(order);
+    }
+
+    public void updateDBexecution(EExecution execution){
+        executionRepository.save(execution);
+    }
+
 
     //Broadcast sending BBO message
     public void SendBBOPointMessage(BBOMessage message){
@@ -86,7 +103,7 @@ public class ServerWSController {
     //Broadcast sending SingleExecutionMessage
     public void SendSingleExecutionPointMessage(SingleExecutionMessage message){
         trclog.log(Level.INFO,message.getClass().toString()+": "+message.toString());
-        tickerRepository.save(new Ticker(String.valueOf(System.currentTimeMillis()),221.5, 211.4, 211.4, 211.45, 207.2, 214.3, 206.2, 62449406.56, "2019-07-31T04:52:17.152Z"));
+        //tickerRepository.save(new Ticker(String.valueOf(System.currentTimeMillis()),221.5, 211.4, 211.4, 211.45, 207.2, 214.3, 206.2, 62449406.56, "2019-07-31T04:52:17.152Z"));
         messagingTemplate.convertAndSend(SingleExecutionSendPoint,message);
     }
 
