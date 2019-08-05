@@ -78,6 +78,10 @@ public class ServerWSController {
         orderRepository.save(order);
     }
 
+    public void updateClientDBOrder(EOrder order){
+        orderRepository.updateFromClient(order.getExchangeId(),order.getStrategy());
+    }
+
     public List<EOrder> getOrderByExchange(String exchangeId){
         return orderRepository.findByExchangeId(exchangeId);
     }

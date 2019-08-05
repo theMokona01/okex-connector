@@ -19,8 +19,8 @@ public interface OrderRepository extends CrudRepository<EOrder, Long> {
     void updateFromExchange(String instructionId, Double price);
 
     @Modifying
-    @Query("UPDATE EOrder e SET e.size = ?2 WHERE e.instructionId = ?1")
+    @Query("UPDATE EOrder e SET e.strategy = ?2 WHERE e.exchangeId = ?1")
     @Transactional
-    void updateFromClient(String instructionId, Double size);
+    void updateFromClient(String exchangeId, String strategy);
 
 }

@@ -192,9 +192,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                         List<EOrder> sendedOrder = wsController.getOrderByExchange(instructionId);
                         trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
                         if(sendedOrder.size() > 0){
-                            trclog.log(Level.INFO,"Order found "+sendedOrder.toString());
-                            InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE");
-                            wsController.SendInfoPointMessage(iMsg);
+                            updateAfterSucces(limitOrder,sendedOrder.get(0),instructionId);
                             break;
                         }
                     }
@@ -234,12 +232,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                         trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
                         if(sendedOrder.size() > 0){
                             trclog.log(Level.INFO,"Order found "+sendedOrder.toString());
-                            InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE");
-                            EOrder updatedOrder = new EOrder();
-                            updatedOrder.setStrategy(limitOrder.getStrategy());
-                            updatedOrder.setExchangeId(instructionId);
-                            wsController.updateDBorder(updatedOrder);
-                            wsController.SendInfoPointMessage(iMsg);
+                            updateAfterSucces(limitOrder,sendedOrder.get(0),instructionId);
                             break;
                         }
                     }
@@ -253,6 +246,19 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                 }
             });
         }
+    }
+
+    private void updateAfterSucces(classes.trading.Order successedOrder, EOrder eOrder,String instructionId){
+        InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString());
+        EOrder updatedOrder = new EOrder();
+        updatedOrder.setStrategy(successedOrder.getStrategy());
+        updatedOrder.setExchangeId(instructionId);
+        updatedOrder.setInstructionId(successedOrder.getInstructionKey());
+        wsController.updateClientDBOrder(updatedOrder);
+        wsController.SendInfoPointMessage(iMsg);
+        List<EOrder> sendedOrder2 = wsController.getOrderByExchange(instructionId);
+        InfoMessage iMsg2= new InfoMessage("LMAX updated, order found id DATABASE"+sendedOrder2.get(0).toString());
+        wsController.SendInfoPointMessage(iMsg2);
     }
 
     @Override
@@ -344,6 +350,8 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
 
         EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
                 messageOrder.getPrice(),messageOrder.getSize(),messageOrder.getSide(),OrderType.LIMIT);
+        exchangeOrder.setFilled(messageOrder.getFilled());
+        //exchangeOrder.setExecuted(messageOrder.getExecuted());
         wsController.updateDBorder(exchangeOrder);
 
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());

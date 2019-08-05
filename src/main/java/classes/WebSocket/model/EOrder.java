@@ -1,6 +1,7 @@
 package classes.WebSocket.model;
 
 import classes.Enums.OrderSide;
+import classes.Enums.OrderStatus;
 import classes.Enums.OrderType;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.data.jpa.repository.Modifying;
@@ -49,6 +50,15 @@ public class EOrder {
 
     @Column(name = "type")
     private OrderType orderType;
+
+    @Column(name = "filled")
+    private double filled;
+
+    @Column(name = "executed")
+    private double executed;
+
+    @Column(name = "status")
+    private OrderStatus status;
 
 
     public EOrder() {}
@@ -143,5 +153,29 @@ public class EOrder {
 
     public void setOrderType(OrderType orderType) {
         this.orderType = orderType;
+    }
+
+    public double getFilled() {
+        return filled;
+    }
+
+    public void setFilled(double filled) {
+        this.filled = filled;
+    }
+
+    public double getExecuted() {
+        return executed;
+    }
+
+    public void setExecuted(double executed) {
+        this.executed = executed;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
     }
 }
