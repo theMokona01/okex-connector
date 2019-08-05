@@ -23,6 +23,7 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,9 +78,15 @@ public class ServerWSController {
         orderRepository.save(order);
     }
 
+    public List<EOrder> getOrderByExchange(String exchangeId){
+        return orderRepository.findByExchangeId(exchangeId);
+    }
+
     public void updateDBexecution(EExecution execution){
         executionRepository.save(execution);
     }
+
+
 
 
     //Broadcast sending BBO message

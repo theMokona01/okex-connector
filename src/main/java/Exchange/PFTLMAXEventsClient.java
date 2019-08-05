@@ -188,6 +188,16 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                     InfoMessage response = new InfoMessage(limitOrder.getID() + ":" +
                             instructionId);
                     wsController.SendInfoPointMessage(response);
+                    while(true) {
+                        List<EOrder> sendedOrder = wsController.getOrderByExchange(instructionId);
+                        trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
+                        if(sendedOrder.size() > 0){
+                            trclog.log(Level.INFO,"Order found "+sendedOrder.toString());
+                            InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE");
+                            wsController.SendInfoPointMessage(iMsg);
+                            break;
+                        }
+                    }
                 }
 
                 @Override
@@ -218,6 +228,21 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
                     InfoMessage response = new InfoMessage(limitOrder.getID() + ":" +
                             instructionId);
                     wsController.SendInfoPointMessage(response);
+
+                    while(true) {
+                        List<EOrder> sendedOrder = wsController.getOrderByExchange(instructionId);
+                        trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
+                        if(sendedOrder.size() > 0){
+                            trclog.log(Level.INFO,"Order found "+sendedOrder.toString());
+                            InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE");
+                            EOrder updatedOrder = new EOrder();
+                            updatedOrder.setStrategy(limitOrder.getStrategy());
+                            updatedOrder.setExchangeId(instructionId);
+                            wsController.updateDBorder(updatedOrder);
+                            wsController.SendInfoPointMessage(iMsg);
+                            break;
+                        }
+                    }
                 }
 
                 @Override
@@ -251,8 +276,12 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         trclog.log(Level.INFO,execution.toString());
         currentExecution.setId(String.valueOf(execution.getExecutionId()));
         currentExecution.setOrderId(execution.getOrder().getOriginalInstructionId());
-        currentExecution.setPrice(0.0);//Double.parseDouble(String.valueOf(execution.getPrice().longValue())));
-        currentExecution.setFilled(Double.parseDouble(execution.getQuantity().toString()));
+        if(execution.getPrice()==null) {
+            currentExecution.setPrice(0.0);//Double.parseDouble(String.valueOf(execution.getPrice().longValue())));
+        }else{
+            currentExecution.setPrice(Double.parseDouble(execution.getPrice().toString()));
+        }
+            currentExecution.setFilled(Double.parseDouble(execution.getQuantity().toString()));
         if(Double.parseDouble(execution.getQuantity().toString()) != 0) {
             currentExecution.setExecuted(Double.parseDouble(execution.getPrice().toString())*Double.parseDouble(execution.getQuantity().toString()));
         }
@@ -274,7 +303,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     public void notify(InstructionRejectedEvent instructionRejected)
     {
         String rejectedId = instructionRejected.getInstructionId();
-        trclog.log(Level.INFO,instructionRejected.toString());
+        trclog.log(Level.WARNING,instructionRejected.toString());
     }
 
     @Override
@@ -298,6 +327,12 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             messageOrder.setSide(OrderSide.BUY);
         }
 
+        if(order.getLimitPrice()==null){
+            messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
+        }else{
+            messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
+        }
+
         /*/if(order.getLimitPrice().toString().equals("null")){
             if(!order.getStopReferencePrice().toString().equals(null)){
                 messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
@@ -308,7 +343,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         messageOrder.setStatus(detectOrderStatus(messageOrder,false));
 
         EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
-                messageOrder.getPrice(),messageOrder.getSize());
+                messageOrder.getPrice(),messageOrder.getSize(),messageOrder.getSide(),OrderType.LIMIT);
         wsController.updateDBorder(exchangeOrder);
 
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());
