@@ -16,7 +16,7 @@ import javax.transaction.Transactional;
 import java.util.UUID;
 
 @Entity
-@OptimisticLocking(type = OptimisticLockType.DIRTY)
+//@OptimisticLocking(type = OptimisticLockType.NONE)
 @DynamicUpdate
 @Table
 public class EOrder {

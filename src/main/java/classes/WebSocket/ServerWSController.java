@@ -86,7 +86,7 @@ public class ServerWSController {
 
     public void cleanOldTrashOrders(long seconds){
         try {
-            orderRepository.cleanOldTrashOrders(seconds);
+            //orderRepository.cleanOldTrashOrders(seconds);
         } catch(Exception e){
             e.printStackTrace();
         }
