@@ -351,6 +351,8 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
                 messageOrder.getPrice(),messageOrder.getSize(),messageOrder.getSide(),OrderType.LIMIT);
         exchangeOrder.setFilled(messageOrder.getFilled());
+        exchangeOrder.setStatus(messageOrder.getStatus());
+
         //exchangeOrder.setExecuted(messageOrder.getExecuted());
         wsController.updateDBorder(exchangeOrder);
 

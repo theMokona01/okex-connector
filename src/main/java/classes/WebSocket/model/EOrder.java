@@ -57,6 +57,7 @@ public class EOrder {
     @Column(name = "executed")
     private double executed;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private OrderStatus status;
 
