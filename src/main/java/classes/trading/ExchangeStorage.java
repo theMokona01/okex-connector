@@ -1,6 +1,5 @@
 package classes.trading;
 
-import Exchange.PFTLMAXEventsClient;
 import classes.Enums.OrderSnapShotType;
 import classes.Enums.OrderStatus;
 import classes.WebSocket.ServerWSController;
@@ -8,7 +7,6 @@ import classes.WebSocket.messages.OrdersSnapshotMessage;
 import interfaces.ConnectorStorage;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
-import javax.enterprise.inject.New;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;

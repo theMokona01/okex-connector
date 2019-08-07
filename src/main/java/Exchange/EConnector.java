@@ -1,6 +1,5 @@
 package Exchange;
 
-import classes.WebSocket.ServerWSController;
 import classes.trading.ExchangeStorage;
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
@@ -16,10 +15,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.lang.System.exit;
-
 public class EConnector implements ExchangeConnector {
-    public PFTLMAXEventsClient Connector;
+    public TargetEventsClient Connector;
     private String Exchange;
     //Logger variables
     private Logger trclog;
@@ -69,7 +66,7 @@ public class EConnector implements ExchangeConnector {
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
-                    Connector = new PFTLMAXEventsClient(InstrumentList,this.Exchange,exchangeStorage,connectorType);
+                    Connector = new TargetEventsClient(InstrumentList,this.Exchange,exchangeStorage,connectorType);
                     //this need run in CoreThread
                     new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
                     //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);

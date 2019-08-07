@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 import static java.lang.System.currentTimeMillis;
 
 
-public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
+public class TargetEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
         StreamFailureListener, OrderEventListener, InstructionRejectedEventListener, ExecutionEventListener, SessionDisconnectedListener,
         PositionEventListener {
     private String Exchange;
@@ -58,7 +58,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     private OrdersSnapshotMessage currentOrderSnapshotMessage = new OrdersSnapshotMessage();
 
     //Logger variables
-    private Logger trclog = Logger.getLogger(PFTLMAXEventsClient.class.getName());
+    private Logger trclog = Logger.getLogger(TargetEventsClient.class.getName());
 
     //Connector storage variables
     private ExchangeStorage currentExchangeStorage;
@@ -66,7 +66,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
     //Connector run type
     private RunType ConnectorType;
 
-    public PFTLMAXEventsClient(List<Instrument> InstrumentList, String Exchange, ExchangeStorage exchangeStorage,RunType ConnectorType){
+    public TargetEventsClient(List<Instrument> InstrumentList, String Exchange, ExchangeStorage exchangeStorage,RunType ConnectorType){
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
         this.currentBalanceMessage = new BalanceMessage(this.Exchange);
