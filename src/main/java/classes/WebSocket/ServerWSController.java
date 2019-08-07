@@ -74,8 +74,17 @@ public class ServerWSController {
         this.exchangeConnector = exchangeConnector;
     }
     //Updateting DB
-    public void updateDBorder(EOrder order){
-        orderRepository.save(order);
+    public void updateDBorderFromexchange(EOrder order){
+        List<EOrder> btwOrders = this.getOrderByExchangeId(order.getExchangeId());
+        if(btwOrders.size()!=0){
+        EOrder upOrder = btwOrders.get(0);
+        upOrder.setStatus(order.getStatus());
+        upOrder.setFilled(order.getFilled());
+        upOrder.setUpdateTimestamp(order.getUpdateTimestamp());
+        orderRepository.save(upOrder);
+        }else{
+            orderRepository.save(order);
+        }
     }
 
     public void updateClientDBOrder(EOrder order){

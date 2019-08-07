@@ -1,5 +1,6 @@
 package classes.WebSocket.repository;
 
+import classes.Enums.OrderStatus;
 import classes.Enums.OrderType;
 import classes.WebSocket.model.EOrder;
 import classes.WebSocket.model.Ticker;
@@ -14,16 +15,14 @@ import javax.persistence.LockModeType;
 import java.util.List;
 
 public interface OrderRepository extends CrudRepository<EOrder, Long> {
-    //List<EOrder> findByInstructionId(String instrumentId);
-    //@Lock(LockModeType.PESSIMISTIC_READ)
     List<EOrder> findByExchangeId(String exchangeId);
     //@Lock(LockModeType.PESSIMISTIC_READ)
     List<EOrder> findAll();
     @Modifying
     //@Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("UPDATE EOrder e SET e.filled = ?2 WHERE e.exchangeId = ?1")
+    @Query("UPDATE EOrder e SET e.filled = ?2, e.status =?3, e.updateTimestamp = ?4 WHERE e.exchangeId = ?1")
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    void updateFromExchange(String instructionId, Double filled, long updadeTimeStamp);
+    void updateFromExchange(String instructionId, Double filled, long updadeTimeStamp, OrderStatus orderStatus);
 
     @Modifying
     //@Lock(LockModeType.PESSIMISTIC_WRITE)

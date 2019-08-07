@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 
 import static java.lang.System.exit;
 
-public class LMAXConnector implements ExchangeConnector {
+public class EConnector implements ExchangeConnector {
     public PFTLMAXEventsClient Connector;
     private String Exchange;
     //Logger variables
@@ -35,7 +35,7 @@ public class LMAXConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public LMAXConnector(String url, String login, String password, String Exchange, String[] Instruments, ExchangeStorage exchangeStorage, RunType connectorType) {
+    public EConnector(String url, String login, String password, String Exchange, String[] Instruments, ExchangeStorage exchangeStorage, RunType connectorType) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
@@ -43,7 +43,7 @@ public class LMAXConnector implements ExchangeConnector {
                     .put("password", password);
             this.Exchange=Exchange;
             InitConnector(Credentials,Instruments,exchangeStorage,connectorType);
-            trclog = Logger.getLogger(LMAXConnector.class.getName());
+            trclog = Logger.getLogger(EConnector.class.getName());
             //currentExchangeDataStrage = exchangeStorage;
         }catch (Exception e){
             e.printStackTrace();

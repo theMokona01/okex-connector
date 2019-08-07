@@ -345,13 +345,6 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
             messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
         }
 
-        /*/if(order.getLimitPrice().toString().equals("null")){
-            if(!order.getStopReferencePrice().toString().equals(null)){
-                messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
-            }
-        }else{
-            messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
-        }*/
         messageOrder.setStatus(detectOrderStatus(messageOrder,false));
 
         EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
@@ -361,7 +354,7 @@ public class PFTLMAXEventsClient implements LoginCallback, AccountStateEventList
         exchangeOrder.setUpdateTimestamp(messageOrder.getLastUpdate());
         //exchangeOrder.setExecuted(messageOrder.getExecuted());
 
-        wsController.updateDBorder(exchangeOrder);
+        wsController.updateDBorderFromexchange(exchangeOrder);
 
 
         trclog.log(Level.INFO,"Order Id:"+messageOrder.getExchangeID());

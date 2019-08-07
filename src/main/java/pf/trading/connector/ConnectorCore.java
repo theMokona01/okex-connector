@@ -1,6 +1,6 @@
 package pf.trading.connector;
 
-import Exchange.LMAXConnector;
+import Exchange.EConnector;
 import classes.WebSocket.ServerWSApplication;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
@@ -42,12 +42,12 @@ public class ConnectorCore {
                 "applicationContext.xml"
         );
 
-        LMAXConnector lmaxConnector = (LMAXConnector) context.getBean("ExchangeConnector");
-        lmaxConnector.Connector.setWsController(RelationWSController);
+        EConnector exchangeConnector = (EConnector) context.getBean("ExchangeConnector");
+        exchangeConnector.Connector.setWsController(RelationWSController);
         //context.close();
 
         //Bing exchange connector to ServerWSController
-        RelationWSController.setExchangeConnector(lmaxConnector);
+        RelationWSController.setExchangeConnector(exchangeConnector);
 
 
     }

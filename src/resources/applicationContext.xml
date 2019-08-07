@@ -7,19 +7,19 @@
         http://www.springframework.org/schema/context
         http://www.springframework.org/schema/context/spring-context.xsd">
 
-        <context:property-placeholder location="classpath:lmax.properties" />
+        <context:property-placeholder location="classpath:exchange.properties" />
 
     <bean id="ExchangeStorage" class="classes.trading.ExchangeStorage">
-        <constructor-arg name="exchangeName" value="${LMAX.exchange.name}"/>
-        <constructor-arg name="account" value="${LMAX.Credentials.account}"/>
+        <constructor-arg name="exchangeName" value="${EXCHANGE.exchange.name}"/>
+        <constructor-arg name="account" value="${EXCHANGE.Credentials.account}"/>
     </bean>
 
         <bean id="ExchangeConnector"
-              class="Exchange.LMAXConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
-            <constructor-arg name="url" value="${LMAX.Credentials.url}"/>
-            <constructor-arg name="login" value="${LMAX.Credentials.login}"/>
-            <constructor-arg name="password" value="${LMAX.Credentials.password}"/>
-            <constructor-arg name="Exchange" value="${LMAX.exchange.name}"/>
+              class="Exchange.EConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
+            <constructor-arg name="url" value="${EXCHANGE.Credentials.url}"/>
+            <constructor-arg name="login" value="${EXCHANGE.Credentials.login}"/>
+            <constructor-arg name="password" value="${EXCHANGE.Credentials.password}"/>
+            <constructor-arg name="Exchange" value="${EXCHANGE.exchange.name}"/>
             <constructor-arg name="Instruments">
                 <list>
                     <value>5002</value>
@@ -31,7 +31,7 @@
                 </list>
             </constructor-arg>
             <constructor-arg name="exchangeStorage" ref="ExchangeStorage" />
-            <constructor-arg name="connectorType" value="${LMAX.ConnectorType}"/>
+            <constructor-arg name="connectorType" value="${EXCHANGE.ConnectorType}"/>
         </bean>
 
 </beans>
