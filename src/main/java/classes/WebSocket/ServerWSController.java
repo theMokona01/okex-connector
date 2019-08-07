@@ -79,10 +79,20 @@ public class ServerWSController {
     }
 
     public void updateClientDBOrder(EOrder order){
-        orderRepository.updateFromClient(order.getExchangeId(),order.getStrategy());
+        orderRepository.updateFromClient(order.getExchangeId(),order.getInstructionKey(),order.getStrategy(),order.getSymbol(),
+                order.getExchangeSymbol(),order.getLeftSymbol(),order.getRightSymbol(),order.getOrderType(),order.getPrice(),order.getSize(),
+                order.getInitTimestamp(),order.getUpdateTimestamp());
     }
 
-    public List<EOrder> getOrderByExchange(String exchangeId){
+    public void cleanOldTrashOrders(long seconds){
+        try {
+            //orderRepository.cleanOldTrashOrders(seconds);
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public List<EOrder> getOrderByExchangeId(String exchangeId){
         return orderRepository.findByExchangeId(exchangeId);
     }
 

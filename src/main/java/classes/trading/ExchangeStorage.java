@@ -331,6 +331,9 @@ public class ExchangeStorage implements ConnectorStorage {
             TempOrders.keySet().removeAll(toRemoveId);
             trclog.log(Level.INFO,"Cleanup TEMP storage before: "+ count +" ,after: "+ TempOrders.size());
         }
+        long deleteBefore = CurrentTimestamp - (5*1000);
+        trclog.log(Level.INFO,"CleanUp DBorder storage , store-time: "+ String.valueOf(deleteBefore) +" sec");
+        wsController.cleanOldTrashOrders(deleteBefore);
 
     }
 

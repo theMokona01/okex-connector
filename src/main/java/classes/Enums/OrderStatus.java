@@ -9,8 +9,9 @@ public enum OrderStatus {
     REJECTED("REJECTED"),
     UNKNOWN("UNKNOWN");
 
-    private final String orderStatus;
-    OrderStatus(String orderStatus) {
-        this.orderStatus = orderStatus;
+    private String Status;
+
+    OrderStatus(String Status) {
+        this.Status = Status;
     }
 }
