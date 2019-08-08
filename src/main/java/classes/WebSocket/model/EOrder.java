@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @Entity
 //@OptimisticLocking(type = OptimisticLockType.NONE)
-@DynamicUpdate
+//@DynamicUpdate
 @Table
 public class EOrder {
     //check if sender and receiver of object have loaded classes for object
@@ -30,6 +30,10 @@ public class EOrder {
 
     @Id
     private String exchangeId;
+
+    //@Version
+    //@Column(name="OPT_LOCK")
+    //private Long version;
 
     //column names
     @Column(name = "strategy")

@@ -4,7 +4,7 @@ import Exchange.EConnector;
 import classes.WebSocket.ServerWSApplication;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.BBOMessage;
-import classes.WebSocket.repository.TickerRepository;
+//import classes.WebSocket.repository.TickerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
@@ -48,6 +48,19 @@ public class ConnectorCore {
 
         //Bing exchange connector to ServerWSController
         RelationWSController.setExchangeConnector(exchangeConnector);
+
+        //Shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                trclog.log(Level.WARNING,"Shutting down");
+                context.clearResourceCaches();
+                context.close();
+                trclog.log(Level.WARNING,"Shutted down");
+            }
+        });
 
 
     }

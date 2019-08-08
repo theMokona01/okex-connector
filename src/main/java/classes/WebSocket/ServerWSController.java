@@ -3,10 +3,13 @@ package classes.WebSocket;
 import classes.Enums.CommandStatus;
 import classes.Enums.Commands;
 import classes.Enums.OrderCommand;
+import classes.Enums.OrderStatus;
+
 import classes.WebSocket.messages.*;
 import classes.WebSocket.model.EExecution;
 import classes.WebSocket.model.EOrder;
 import classes.WebSocket.model.Ticker;
+
 import classes.WebSocket.repository.ExecutionRepository;
 import classes.WebSocket.repository.OrderRepository;
 import classes.WebSocket.repository.TickerRepository;
@@ -26,6 +29,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.lang.System.currentTimeMillis;
 
 //@Service("PFService")
 @Controller
@@ -87,6 +92,10 @@ public class ServerWSController {
         }
     }
 
+    public void insertDBRejectedFromExchange(EOrder order){
+        orderRepository.save(order);
+    }
+
     public void updateClientDBOrder(EOrder order){
         orderRepository.updateFromClient(order.getExchangeId(),order.getInstructionKey(),order.getStrategy(),order.getSymbol(),
                 order.getExchangeSymbol(),order.getLeftSymbol(),order.getRightSymbol(),order.getOrderType(),order.getPrice(),order.getSize(),
@@ -96,8 +105,19 @@ public class ServerWSController {
     public void cleanOldTrashOrders(long seconds){
         try {
             //orderRepository.cleanOldTrashOrders(seconds);
+            long currentTimestamp = currentTimeMillis();
+            long deleleSeconds = seconds * 1000;
+            long delTime = currentTimestamp - deleleSeconds;
+            //trclog.log(Level.WARNING,"CleanUp");
+            //orderRepository.deleteAllByInstructionKey("UNKNOWN");//AndUpdateTimestampLessThan("",currentTimestamp-deleleSeconds);
+
+            //orderRepository.deleteAllByStatusAndUpdateTimestampLessThan(OrderStatus.REJECTED,delTime);
         } catch(Exception e){
+            System.out.println("HERE");
             e.printStackTrace();
+        } catch (Throwable throwable) {
+            System.out.println("Here exception" );
+            throwable.printStackTrace();
         }
     }
 
@@ -108,7 +128,6 @@ public class ServerWSController {
     public void updateDBexecution(EExecution execution){
         executionRepository.save(execution);
     }
-
 
 
 
@@ -200,6 +219,8 @@ public class ServerWSController {
         if(cmd.getCommand() == Commands.ORDERCOMMAND){
             switch(currentCommand){
                 case PLACE:
+                    //trclog.log(Level.INFO,"Exiting "+cmd.getOrder().toString());
+                    //System.exit(1);
                     trclog.log(Level.INFO,"Sending order "+cmd.getOrder().toString());
                     exchangeConnector.SendOrder(cmd.getOrder());
                     cmd.setStatus(CommandStatus.EXECUTED);

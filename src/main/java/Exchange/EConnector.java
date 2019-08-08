@@ -1,6 +1,5 @@
 package Exchange;
 
-import classes.trading.ExchangeStorage;
 import com.lmax.api.LmaxApi;
 import com.lmax.api.LmaxApiException;
 import com.lmax.api.account.LoginRequest;
@@ -32,14 +31,14 @@ public class EConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public EConnector(String url, String login, String password, String Exchange, String[] Instruments, ExchangeStorage exchangeStorage, RunType connectorType) {
+    public EConnector(String url, String login, String password, String Exchange, String[] Instruments, RunType connectorType) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
                     .put("login", login)
                     .put("password", password);
             this.Exchange=Exchange;
-            InitConnector(Credentials,Instruments,exchangeStorage,connectorType);
+            InitConnector(Credentials,Instruments,connectorType);
             trclog = Logger.getLogger(EConnector.class.getName());
             //currentExchangeDataStrage = exchangeStorage;
         }catch (Exception e){
@@ -48,7 +47,7 @@ public class EConnector implements ExchangeConnector {
     }
 
     @Override
-    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments,ExchangeStorage exchangeStorage,RunType connectorType) {
+    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments,RunType connectorType) {
         try {
             if (Credentials.has("url") && Credentials.has("login") && Credentials.has("password")) {
                 try {
@@ -66,7 +65,7 @@ public class EConnector implements ExchangeConnector {
 
                     //Enter into exchange
                     LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
-                    Connector = new TargetEventsClient(InstrumentList,this.Exchange,exchangeStorage,connectorType);
+                    Connector = new TargetEventsClient(InstrumentList,this.Exchange,connectorType);
                     //this need run in CoreThread
                     new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
                     //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);

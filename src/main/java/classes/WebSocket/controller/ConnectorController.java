@@ -3,6 +3,7 @@ package classes.WebSocket.controller;
 
 import classes.WebSocket.model.Ticker;
 import classes.WebSocket.model.TickerUI;
+import classes.WebSocket.repository.OrderRepository;
 import classes.WebSocket.repository.TickerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -14,16 +15,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 //restful web service
-//@Controller
-public class TickerController {
-    @Autowired
+@RestController
+public class ConnectorController {
+    /*@Autowired
     TickerRepository repository;
+    @Autowired
+    OrderRepository orderRepository;*/
 
     //get method, create several tickers without passing any data, default option
-    @GetMapping("/bulkcreate")
+    @GetMapping("/api/v1/bulkcreate")
     public String bulkcreate() {
         // save a single ticker
-        repository.save(new Ticker("ETH-USDT",221.5, 211.4, 211.4, 211.45, 207.2, 214.3, 206.2, 62449406.56, "2019-07-31T04:52:17.152Z"));
+        //repository.save(new Ticker("ETH-USDT",221.5, 211.4, 211.4, 211.45, 207.2, 214.3, 206.2, 62449406.56, "2019-07-31T04:52:17.152Z"));
 
         return "Recorded ticker";
     }
@@ -32,20 +35,20 @@ public class TickerController {
     @PostMapping("/create")
     public String create(@RequestBody TickerUI ticker){
         // save a single ticker
-        repository.save(new Ticker(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
+        //repository.save(new Ticker(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
 
         return "Ticker is created";
     }
     //get method, search all tickers and returns as JSON
-    @GetMapping("/findall")
+    @GetMapping("/api/v1//findall")
     public List<TickerUI> findAll(){
 
-        List<Ticker> tickers = repository.findAll();
+        //List<Ticker> tickers = repository.findAll();
         List<TickerUI> tickerUI = new ArrayList<>();
 
-        for (Ticker ticker : tickers) {
-            tickerUI.add(new TickerUI(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
-        }
+        //for (Ticker ticker : tickers) {
+        //    tickerUI.add(new TickerUI(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
+        //}
 
         return tickerUI;
     }
@@ -53,7 +56,7 @@ public class TickerController {
     @RequestMapping("/search/{id}")
     public String search(@PathVariable long id){
         String ticker = "";
-        ticker = repository.findById(id).toString();
+        //ticker = repository.findById(id).toString();
         return ticker;
     }
 
@@ -61,12 +64,12 @@ public class TickerController {
     @RequestMapping("/searchbyinstrumentId/{instrumentId}")
     public List<TickerUI> fetchDataByInstrumentId(@PathVariable String instrumentId){
 
-        List<Ticker> tickers = repository.findByInstrumentId(instrumentId);
+        //List<Ticker> tickers = repository.findByInstrumentId(instrumentId);
         List<TickerUI> tickerUI = new ArrayList<>();
 
-        for (Ticker ticker : tickers) {
-            tickerUI.add(new TickerUI(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
-        }
+        //for (Ticker ticker : tickers) {
+        //    tickerUI.add(new TickerUI(ticker.getInstrumentId(),ticker.getLast(), ticker.getBestBid(), ticker.getBestAsk(), ticker.getOpen24h(), ticker.getHigh24h(), ticker.getLow24h(), ticker.getBaseVolume(), ticker.getQuoteVolume(), ticker.getTimestamp()));
+        //}
 
         return tickerUI;
     }

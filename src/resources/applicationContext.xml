@@ -9,10 +9,6 @@
 
         <context:property-placeholder location="classpath:exchange.properties" />
 
-    <bean id="ExchangeStorage" class="classes.trading.ExchangeStorage">
-        <constructor-arg name="exchangeName" value="${EXCHANGE.exchange.name}"/>
-        <constructor-arg name="account" value="${EXCHANGE.Credentials.account}"/>
-    </bean>
 
         <bean id="ExchangeConnector"
               class="Exchange.EConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
@@ -30,7 +26,6 @@
                     <value>5013</value>
                 </list>
             </constructor-arg>
-            <constructor-arg name="exchangeStorage" ref="ExchangeStorage" />
             <constructor-arg name="connectorType" value="${EXCHANGE.ConnectorType}"/>
         </bean>
 
