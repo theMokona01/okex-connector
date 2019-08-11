@@ -10,8 +10,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,9 +37,9 @@ public interface OrderRepository extends CrudRepository<EOrder, Long> {
 
     List<EOrder> findAll();
     @Modifying
-    @Query("UPDATE EOrder e SET e.filled = ?2, e.status =?3, e.updateTimestamp = ?4 WHERE e.exchangeId = ?1")
+    @Query("UPDATE EOrder e SET e.filled = ?2 , e.executed_price = ?3, e.updateTimestamp = ?4, e.status =?5 WHERE e.exchangeId = ?1")
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    void updateFromExchange(String instructionId, Double filled, long updadeTimeStamp, OrderStatus orderStatus);
+    void updateFromExchange(String exchangeId, Double filled, Double executed_price, long updadeTimeStamp, OrderStatus orderStatus);
 
     @Modifying
     @Query("UPDATE EOrder e SET e.instructionKey= ?2, e.strategy = ?3, e.symbol= ?4," +

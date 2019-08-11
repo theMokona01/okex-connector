@@ -51,6 +51,9 @@ public class EOrder {
     @Column(name = "price")
     private double price;
 
+    @Column(name = "executed_price")
+    private double executed_price;
+
     @Column(name = "size")
     private double size;
 
@@ -160,6 +163,14 @@ public class EOrder {
         this.price = price;
     }
 
+    public double getExecuted_price() {
+        return executed_price;
+    }
+
+    public void setExecuted_price(double executed_price) {
+        this.executed_price = executed_price;
+    }
+
     public double getSize() {
         return size;
     }
@@ -189,7 +200,7 @@ public class EOrder {
     }
 
     public void setSymbol(String symbol) {
-        symbol = symbol;
+        this.symbol = symbol;
     }
 
     public String getExchangeSymbol() {

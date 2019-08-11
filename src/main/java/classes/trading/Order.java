@@ -16,7 +16,8 @@ public class Order {
     private String Strategy;
     private String Exchange;
     private String UserSymbol;
-    private String Symbol;
+    //private String Symbol;
+    private String ExchangeSymbol;
     private String LeftSymbol;
     private String RightSymbol;
     private String ID;
@@ -41,11 +42,11 @@ public class Order {
 
     public Order(){}
 
-    public Order(String instructionKey, String strategy, String exchange,String userSymbol, String symbol,  String leftSymbol, String rightSymbol, String id, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, String customJsonData, long initTimestamp, long lastUpdate) {
+    public Order(String instructionKey, String strategy, String exchange,String exchangeSymbol,String userSymbol, String leftSymbol, String rightSymbol, String id, String exchangeID, OrderSide side, OrderType type, OrderStatus status, CustomOrderParams params, Double price, Double size, String customJsonData, long initTimestamp, long lastUpdate) {
         InstructionKey = instructionKey;
         Strategy = strategy;
         Exchange = exchange;
-        Symbol = symbol;
+        ExchangeSymbol = exchangeSymbol;
 
         UserSymbol = userSymbol;
         LeftSymbol = leftSymbol;
@@ -62,7 +63,6 @@ public class Order {
         InitTimestamp = initTimestamp;
         LastUpdate = lastUpdate;
     }
-
     public String getInstructionKey() {
         return InstructionKey;
     }
@@ -95,12 +95,20 @@ public class Order {
         UserSymbol = userSymbol;
     }
 
-    public String getSymbol() {
-        return Symbol;
+    //public String getSymbol() {
+    //    return Symbol;
+    //}
+
+    //public void setSymbol(String symbol) {
+    //    Symbol = symbol;
+    //}
+
+    public String getExchangeSymbol() {
+        return ExchangeSymbol;
     }
 
-    public void setSymbol(String symbol) {
-        Symbol = symbol;
+    public void setExchangeSymbol(String exchangeSymbol) {
+        ExchangeSymbol = exchangeSymbol;
     }
 
     public String getLeftSymbol() {

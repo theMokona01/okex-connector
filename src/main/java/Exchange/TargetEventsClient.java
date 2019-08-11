@@ -135,6 +135,20 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
     }
 
 
+    public void CancelOrder(classes.trading.Order order){
+        currentSession.cancelOrder(new CancelOrderRequest(Long.parseLong(order.getExchangeSymbol()),order.getExchangeID()), new OrderCallback() {
+            @Override
+            public void onSuccess(String s) {
+
+            }
+
+            @Override
+            public void onFailure(FailureResponse failureResponse) {
+
+            }
+        });
+    }
+
     public void SendOrder(classes.trading.Order limitOrder){
         //Convert order params in current_exchange format
         FixedPointNumber limitPrice = FixedPointNumber.valueOf(limitOrder.getPrice().toString());
@@ -143,10 +157,11 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
             lSize=lSize*(-1);
         }
         FixedPointNumber limitSize = FixedPointNumber.valueOf(String.valueOf(lSize));
-
+        trclog.log(Level.INFO, "Order exchange symbol: " + limitOrder.getExchangeSymbol());
+        trclog.log(Level.INFO, "Order user symbol: " + limitOrder.getUserSymbol());
         //Place order and get response from exchange with order ID or instructionID(LMAX)
         if(limitOrder.getType() == OrderType.LIMIT) {
-            currentSession.placeLimitOrder(new LimitOrderSpecification(Long.parseLong(limitOrder.getSymbol()), limitPrice
+            currentSession.placeLimitOrder(new LimitOrderSpecification(Long.parseLong(limitOrder.getExchangeSymbol()), limitPrice
                     , limitSize, TimeInForce.GOOD_TIL_CANCELLED), new OrderCallback() {
                 @Override
                 public void onSuccess(String instructionId) {
@@ -175,7 +190,7 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
                 }
             });
         } else if(limitOrder.getType()==OrderType.MARKET){
-            currentSession.placeMarketOrder(new MarketOrderSpecification(Long.parseLong(limitOrder.getSymbol())
+            currentSession.placeMarketOrder(new MarketOrderSpecification(Long.parseLong(limitOrder.getExchangeSymbol())
                     , limitSize, TimeInForce.FILL_OR_KILL), new OrderCallback() {
                 @Override
                 public void onSuccess(String instructionId) {
@@ -208,17 +223,19 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
 
 
     private void updateAfterSuccess(classes.trading.Order successedOrder, EOrder eOrder,String instructionId){
-        InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString());
+        InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString()+" user symbol "+successedOrder.getUserSymbol());
         EOrder updatedOrder = new EOrder();
         updatedOrder.setStrategy(successedOrder.getStrategy());
         updatedOrder.setExchangeId(instructionId);
         updatedOrder.setInstructionKey(successedOrder.getInstructionKey());
-        updatedOrder.setExchangeSymbol(successedOrder.getSymbol());
+        updatedOrder.setExchangeSymbol(successedOrder.getExchangeSymbol());
+        updatedOrder.setSymbol(successedOrder.getUserSymbol());
         updatedOrder.setOrderType(successedOrder.getType());
         updatedOrder.setInitTimestamp(successedOrder.getInitTimestamp());
         updatedOrder.setLeftSymbol(successedOrder.getLeftSymbol());
         updatedOrder.setRightSymbol(successedOrder.getRightSymbol());
         updatedOrder.setSize(successedOrder.getSize());
+        updatedOrder.setPrice(successedOrder.getPrice());
         while(true) {
             if(!isOrderLocker()) {
                 setOrderLocker(true);
@@ -299,11 +316,12 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
     public void notify(Order order)
     {
         classes.trading.Order messageOrder = new classes.trading.Order();
+
         trclog.log(Level.INFO,order.toString());
         String orderId = order.getOriginalInstructionId();
         messageOrder.setExchange(this.Exchange);
         messageOrder.setExchangeID(orderId);
-        messageOrder.setSymbol(String.valueOf(order.getInstrumentId()));
+        messageOrder.setExchangeSymbol(String.valueOf(order.getInstrumentId()));
         messageOrder.setFilled(Math.abs(Double.parseDouble(order.getFilledQuantity().toString())));
         messageOrder.setSize(Math.abs(Double.parseDouble(order.getQuantity().toString())));
         messageOrder.setCancelled_qty(Double.parseDouble(order.getCancelledQuantity().toString()));
@@ -314,11 +332,19 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
             messageOrder.setSide(OrderSide.BUY);
         }
 
-        if(order.getLimitPrice()==null){
-            messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
+       if(order.getOrderType() == com.lmax.api.order.OrderType.LIMIT){
+           messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
+       }else {
+           messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
+       }
+       /* if(order.getLimitPrice()==null){
+
+            if(order.getStopReferencePrice() == null){
+                //messageOrder.setPrice(Double.parseDouble(order.get.toString()));
+            }
         }else{
             messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
-        }
+        }*/
 
         messageOrder.setStatus(detectOrderStatus(messageOrder,false));
 
@@ -328,6 +354,8 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         exchangeOrder.setStatus(messageOrder.getStatus());
         exchangeOrder.setUpdateTimestamp(messageOrder.getLastUpdate());
         exchangeOrder.setInstructionKey("UNKNOWN");
+        exchangeOrder.setExecuted_price(messageOrder.getPrice());
+
         //exchangeOrder.setExecuted(messageOrder.getExecuted());
 
         while(true) {

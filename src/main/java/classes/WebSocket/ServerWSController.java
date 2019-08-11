@@ -86,7 +86,9 @@ public class ServerWSController {
         upOrder.setStatus(order.getStatus());
         upOrder.setFilled(order.getFilled());
         upOrder.setUpdateTimestamp(order.getUpdateTimestamp());
-        orderRepository.save(upOrder);
+        upOrder.setExecuted_price(order.getExecuted_price());
+        orderRepository.updateFromExchange(upOrder.getExchangeId(),upOrder.getFilled(),upOrder.getExecuted_price(),upOrder.getUpdateTimestamp(),upOrder.getStatus());
+        //orderRepository.save(upOrder);
         }else{
             orderRepository.save(order);
         }
@@ -97,10 +99,15 @@ public class ServerWSController {
     }
 
     public void updateClientDBOrder(EOrder order){
+        System.out.println("User symbol "+order.getSymbol());
         orderRepository.updateFromClient(order.getExchangeId(),order.getInstructionKey(),order.getStrategy(),order.getSymbol(),
                 order.getExchangeSymbol(),order.getLeftSymbol(),order.getRightSymbol(),order.getOrderType(),order.getPrice(),order.getSize(),
                 order.getInitTimestamp(),order.getUpdateTimestamp());
     }
+
+    /*public void updateExchangeDBOrder(String exchangeId, double filled, long updateTimestamp,OrderStatus orderStatus){
+        orderRepository.updateFromExchange(exchangeId,filled,updateTimestamp,orderStatus);
+    }*/
 
     public void cleanOldTrashOrders(long seconds){
         try {
