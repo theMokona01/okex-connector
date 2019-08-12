@@ -8,6 +8,8 @@ import classes.WebSocket.model.EExecution;
 import classes.WebSocket.model.EOrder;
 import com.lmax.api.*;
 import com.lmax.api.account.*;
+import com.lmax.api.heartbeat.HeartbeatEventListener;
+import com.lmax.api.heartbeat.HeartbeatSubscriptionRequest;
 import com.lmax.api.order.*;
 //import com.lmax.api.order.OrderType;
 import com.lmax.api.orderbook.OrderBookEvent;
@@ -33,7 +35,7 @@ import static java.lang.System.currentTimeMillis;
 
 public class TargetEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
         StreamFailureListener, OrderEventListener, InstructionRejectedEventListener, ExecutionEventListener, SessionDisconnectedListener,
-        PositionEventListener {
+        PositionEventListener, HeartbeatEventListener {
     private String Exchange;
     //Lmax variables
     private List<Instrument> InstrumentList;
@@ -96,10 +98,12 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
             session.registerInstructionRejectedEventListener(this);
             session.registerExecutionEventListener(this);
             session.registerPositionEventListener(this);
+            session.registerHeartbeatListener(this);
 
             //Subscribe to messages
             subscribe(session, new PositionSubscriptionRequest(), "Positions");
             subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
+            subscribe(session, new HeartbeatSubscriptionRequest(),"HeartBeat");
         }
         if(ConnectorType==RunType.ALL || ConnectorType==RunType.FULLMARKET) {
             session.registerOrderBookEventListener(this);
@@ -352,6 +356,11 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         rejectedOrder.setStatus(OrderStatus.REJECTED);
         wsController.insertDBRejectedFromExchange(rejectedOrder);
         trclog.log(Level.WARNING,instructionRejected.toString());
+    }
+
+    @Override
+    public void notify(long l, String s) {
+        trclog.log(Level.INFO,s);
     }
 
     @Override
