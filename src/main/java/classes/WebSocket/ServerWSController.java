@@ -1,9 +1,6 @@
 package classes.WebSocket;
 
-import classes.Enums.CommandStatus;
-import classes.Enums.Commands;
-import classes.Enums.OrderCommand;
-import classes.Enums.OrderStatus;
+import classes.Enums.*;
 
 import classes.WebSocket.messages.*;
 import classes.WebSocket.model.EExecution;
@@ -67,7 +64,7 @@ public class ServerWSController {
     @Autowired
     private TickerRepository tickerRepository;
     @Autowired
-    OrderRepository orderRepository;
+    public OrderRepository orderRepository;
     @Autowired
     ExecutionRepository executionRepository;
 
@@ -90,6 +87,12 @@ public class ServerWSController {
         upOrder.setExecuted_price(order.getExecuted_price());
         upOrder.setExecuted(order.getExecuted());
         orderRepository.updateFromExchange(upOrder.getExchangeId(),upOrder.getFilled(),upOrder.getExecuted_price(),upOrder.getExecuted(),upOrder.getUpdateTimestamp(),upOrder.getStatus());
+            if(!upOrder.getInstructionKey().equals("UNKNOWN") && !upOrder.getInstructionKey().equals("")) {
+                InfoMessage iMsg = new InfoMessage();
+                iMsg.setInfoType(InfoType.SIMPLE);
+                iMsg.setContent(upOrder.getExchangeId().toString() + " " + upOrder.getStatus() + upOrder.getInstructionKey());
+                SendInfoPointMessage(iMsg);
+            }
         //orderRepository.save(upOrder);
         }else{
             orderRepository.save(order);

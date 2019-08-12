@@ -1,8 +1,6 @@
 package Exchange;
 
-import classes.Enums.OrderSide;
-import classes.Enums.OrderSnapShotType;
-import classes.Enums.OrderStatus;
+import classes.Enums.*;
 import classes.Enums.OrderType;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.*;
@@ -11,6 +9,7 @@ import classes.WebSocket.model.EOrder;
 import com.lmax.api.*;
 import com.lmax.api.account.*;
 import com.lmax.api.order.*;
+//import com.lmax.api.order.OrderType;
 import com.lmax.api.orderbook.OrderBookEvent;
 import com.lmax.api.orderbook.OrderBookEventListener;
 import com.lmax.api.orderbook.OrderBookSubscriptionRequest;
@@ -21,6 +20,7 @@ import com.lmax.api.position.PositionSubscriptionRequest;
 import com.lmax.api.reject.InstructionRejectedEvent;
 import com.lmax.api.reject.InstructionRejectedEventListener;
 import interfaces.Instrument;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -157,8 +157,8 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
             lSize=lSize*(-1);
         }
         FixedPointNumber limitSize = FixedPointNumber.valueOf(String.valueOf(lSize));
-        trclog.log(Level.INFO, "Order exchange symbol: " + limitOrder.getExchangeSymbol());
-        trclog.log(Level.INFO, "Order user symbol: " + limitOrder.getUserSymbol());
+        //trclog.log(Level.INFO, "Order exchange symbol: " + limitOrder.getExchangeSymbol());
+        //trclog.log(Level.INFO, "Order user symbol: " + limitOrder.getUserSymbol());
         //Place order and get response from exchange with order ID or instructionID(LMAX)
         if(limitOrder.getType() == OrderType.LIMIT) {
             currentSession.placeLimitOrder(new LimitOrderSpecification(Long.parseLong(limitOrder.getExchangeSymbol()), limitPrice
@@ -169,9 +169,19 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
                     trclog.log(Level.INFO, "Order accepted by exchange: " + instructionId);
 
                     //Send relation to client for information
-                    InfoMessage response = new InfoMessage("{"+limitOrder.getInstructionKey() + ":" +
-                            instructionId+"}");
-                    wsController.SendInfoPointMessage(response);
+                    try {
+                        JSONObject successedId = new JSONObject();
+                        successedId.put("instructionKey", limitOrder.getInstructionKey());
+                        successedId.put("exchangeId", instructionId);
+                        InfoMessage response = new InfoMessage("{" + limitOrder.getInstructionKey() + ":" +
+                                instructionId + "}");
+                        response.setContent(successedId.toString());
+                        response.setInfoType(InfoType.ORDER_MANAGEMENT);
+                        wsController.SendInfoPointMessage(response);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                     while(true) {
                         List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
                         trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
@@ -206,8 +216,19 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
                     trclog.log(Level.INFO, "Order accepted by exchange: " + instructionId);
 
                     //Send relation to client for information
-                    InfoMessage response = new InfoMessage("{"+limitOrder.getInstructionKey() + ":" +
-                            instructionId+"}");
+                    try {
+                        JSONObject successedId = new JSONObject();
+                        successedId.put("instructionKey", limitOrder.getInstructionKey());
+                        successedId.put("exchangeId", instructionId);
+                        InfoMessage response = new InfoMessage("{" + limitOrder.getInstructionKey() + ":" +
+                                instructionId + "}");
+                        response.setContent(successedId.toString());
+                        response.setInfoType(InfoType.ORDER_MANAGEMENT);
+                        wsController.SendInfoPointMessage(response);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
 
                     while(true) {
                         List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
@@ -240,7 +261,7 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
     }
 
     private void updateAfterSuccess(classes.trading.Order successedOrder, EOrder eOrder,String instructionId){
-        InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString()+" user symbol "+successedOrder.getUserSymbol());
+        //InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString()+" user symbol "+successedOrder.getUserSymbol());
         EOrder updatedOrder = new EOrder();
         updatedOrder.setStrategy(successedOrder.getStrategy());
         updatedOrder.setExchangeId(instructionId);
@@ -253,18 +274,22 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         updatedOrder.setRightSymbol(successedOrder.getRightSymbol());
         updatedOrder.setSize(successedOrder.getSize());
         updatedOrder.setPrice(successedOrder.getPrice());
-        while(true) {
-            if(!isOrderLocker()) {
-                setOrderLocker(true);
-                wsController.updateClientDBOrder(updatedOrder);
-                setOrderLocker(false);
-                break;
-            }
+        //while(true) {
+        //    if(!isOrderLocker()) {
+        //        setOrderLocker(true);
+        synchronized (wsController.orderRepository) {
+            wsController.updateClientDBOrder(updatedOrder);
         }
-        wsController.SendInfoPointMessage(iMsg);
+        //        setOrderLocker(false);
+        //        break;
+        //    }else{trclog.log(Level.INFO,"Locked in order notify");}
+        //}
+        //wsController.SendInfoPointMessage(iMsg);
         List<EOrder> sendedOrder2 = wsController.getOrderByExchangeId(instructionId);
-        InfoMessage iMsg2= new InfoMessage("LMAX updated, order found id DATABASE"+sendedOrder2.get(0).toString());
-        wsController.SendInfoPointMessage(iMsg2);
+        InfoMessage iMsg= new InfoMessage("LMAX updated, order found id DATABASE"+sendedOrder2.get(0).toString());
+        iMsg.setInfoType(InfoType.ORDER_MANAGEMENT);
+        iMsg.setContent(sendedOrder2.get(0).toString());
+        wsController.SendInfoPointMessage(iMsg);
     }
 
     public boolean isOrderLocker() {
@@ -377,14 +402,18 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
 
         //exchangeOrder.setExecuted(messageOrder.getExecuted());
 
-        while(true) {
-           if(!isOrderLocker()) {
-               setOrderLocker(true);
-               wsController.updateDBorderFromexchange(exchangeOrder);
-               setOrderLocker(false);
-               break;
-           }
-        }
+        //while(true) {
+           //if(!isOrderLocker()) {
+               //setOrderLocker(true);
+               synchronized (wsController.orderRepository) {
+                   wsController.updateDBorderFromexchange(exchangeOrder);
+               }
+               //setOrderLocker(false);
+          //     break;
+          // }else{
+               trclog.log(Level.INFO,"Locked in order notify");
+          // }
+       // }
 
         trclog.log(Level.INFO,messageOrder.toString());
 

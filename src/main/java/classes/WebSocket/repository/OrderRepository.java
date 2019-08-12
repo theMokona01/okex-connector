@@ -58,5 +58,4 @@ public interface OrderRepository extends CrudRepository<EOrder, Long> {
     void cleanOldTrashOrders(long deleteBeforeTimestamp);
 
 
-
 }
