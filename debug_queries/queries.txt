@@ -1,0 +1,15 @@
+Select custom strategy:
+
+SELECT exchange_id, exchangesymbol,
+executed, executed_price,
+filled, inittimestamp, instructionkey, internalid,
+leftsymbol, side, type, price, rightsymbol, size,
+status, strategy, symbol, updatetimestamp
+	FROM public.eorderlmax where "strategy" = 'LMX_LMX_XRPUSD_XRPUSD_300719';
+
+Select positions:
+SELECT
+sum(filled) as filled, sum(executed) as executed, sum(size) as size,
+side, max(updatetimestamp) as ts
+FROM public.eorderlmax where "strategy" = 'LMX_LMX_XRPUSD_XRPUSD_300719' group by
+side

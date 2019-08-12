@@ -175,9 +175,18 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
                     while(true) {
                         List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
                         trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
+                        limitOrder.setExchangeID(instructionId);
                         if(sendedOrder.size() > 0){
                             updateAfterSuccess(limitOrder,sendedOrder.get(0),instructionId);
                             break;
+                        }else{
+                            //Insert order
+                            insretAfterSucces(limitOrder);
+                        }
+                        try {
+                            Thread.sleep(1000);
+                        }catch(Exception e){
+                            trclog.log(Level.WARNING, e.toString());
                         }
                     }
                 }
@@ -208,6 +217,11 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
                             updateAfterSuccess(limitOrder,sendedOrder.get(0),instructionId);
                             break;
                         }
+                        try {
+                            Thread.sleep(1000);
+                        }catch(Exception e){
+                            trclog.log(Level.WARNING, e.toString());
+                        }
                     }
                 }
 
@@ -221,6 +235,9 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         }
     }
 
+    private void insretAfterSucces(classes.trading.Order order){
+
+    }
 
     private void updateAfterSuccess(classes.trading.Order successedOrder, EOrder eOrder,String instructionId){
         InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString()+" user symbol "+successedOrder.getUserSymbol());
@@ -337,6 +354,7 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
        }else {
            messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
        }
+       messageOrder.setExecuted(messageOrder.getFilled()*messageOrder.getPrice());
        /* if(order.getLimitPrice()==null){
 
             if(order.getStopReferencePrice() == null){
@@ -355,6 +373,7 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         exchangeOrder.setUpdateTimestamp(messageOrder.getLastUpdate());
         exchangeOrder.setInstructionKey("UNKNOWN");
         exchangeOrder.setExecuted_price(messageOrder.getPrice());
+        exchangeOrder.setExecuted(messageOrder.getExecuted());
 
         //exchangeOrder.setExecuted(messageOrder.getExecuted());
 

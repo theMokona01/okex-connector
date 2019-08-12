@@ -80,6 +80,7 @@ public class ServerWSController {
     }
     //Updateting DB
     public void updateDBorderFromexchange(EOrder order){
+        System.out.println("Exchange executed "+String.valueOf(order.getExecuted()));
         List<EOrder> btwOrders = this.getOrderByExchangeId(order.getExchangeId());
         if(btwOrders.size()!=0){
         EOrder upOrder = btwOrders.get(0);
@@ -87,7 +88,8 @@ public class ServerWSController {
         upOrder.setFilled(order.getFilled());
         upOrder.setUpdateTimestamp(order.getUpdateTimestamp());
         upOrder.setExecuted_price(order.getExecuted_price());
-        orderRepository.updateFromExchange(upOrder.getExchangeId(),upOrder.getFilled(),upOrder.getExecuted_price(),upOrder.getUpdateTimestamp(),upOrder.getStatus());
+        upOrder.setExecuted(order.getExecuted());
+        orderRepository.updateFromExchange(upOrder.getExchangeId(),upOrder.getFilled(),upOrder.getExecuted_price(),upOrder.getExecuted(),upOrder.getUpdateTimestamp(),upOrder.getStatus());
         //orderRepository.save(upOrder);
         }else{
             orderRepository.save(order);
@@ -99,7 +101,6 @@ public class ServerWSController {
     }
 
     public void updateClientDBOrder(EOrder order){
-        System.out.println("User symbol "+order.getSymbol());
         orderRepository.updateFromClient(order.getExchangeId(),order.getInstructionKey(),order.getStrategy(),order.getSymbol(),
                 order.getExchangeSymbol(),order.getLeftSymbol(),order.getRightSymbol(),order.getOrderType(),order.getPrice(),order.getSize(),
                 order.getInitTimestamp(),order.getUpdateTimestamp());
