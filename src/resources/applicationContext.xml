@@ -13,8 +13,9 @@
         <bean id="ExchangeConnector"
               class="Exchange.EConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
             <constructor-arg name="url" value="${EXCHANGE.Credentials.url}"/>
-            <constructor-arg name="login" value="${EXCHANGE.Credentials.login}"/>
-            <constructor-arg name="password" value="${EXCHANGE.Credentials.password}"/>
+            <constructor-arg name="apiKey" value="${EXCHANGE.Credentials.login}"/>
+            <constructor-arg name="secretKey" value="${EXCHANGE.Credentials.password}"/>
+            <constructor-arg name="passphrase" value="${EXCHANGE.Credentials.passphrase}"/>
             <constructor-arg name="Exchange" value="${EXCHANGE.exchange.name}"/>
             <constructor-arg name="Instruments">
                 <list>

@@ -1,29 +1,37 @@
 package Exchange;
 
+import Exchange.config.WebSocketClient;
+import Exchange.config.WebSocketConfig;
 import classes.Enums.*;
 import classes.Enums.OrderType;
 import classes.WebSocket.ServerWSController;
 import classes.WebSocket.messages.*;
 import classes.WebSocket.model.EExecution;
 import classes.WebSocket.model.EOrder;
-import com.lmax.api.*;
-import com.lmax.api.account.*;
-import com.lmax.api.heartbeat.HeartbeatEventListener;
-import com.lmax.api.heartbeat.HeartbeatSubscriptionRequest;
-import com.lmax.api.order.*;
-//import com.lmax.api.order.OrderType;
-import com.lmax.api.orderbook.OrderBookEvent;
-import com.lmax.api.orderbook.OrderBookEventListener;
-import com.lmax.api.orderbook.OrderBookSubscriptionRequest;
-import com.lmax.api.orderbook.PricePoint;
-import com.lmax.api.position.PositionEvent;
-import com.lmax.api.position.PositionEventListener;
-import com.lmax.api.position.PositionSubscriptionRequest;
-import com.lmax.api.reject.InstructionRejectedEvent;
-import com.lmax.api.reject.InstructionRejectedEventListener;
+import classes.trading.Execution;
+import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.okcoin.commons.okex.open.api.bean.futures.param.Order;
+import com.okcoin.commons.okex.open.api.bean.futures.result.Currencies;
+import com.okcoin.commons.okex.open.api.bean.futures.result.Instruments;
+import com.okcoin.commons.okex.open.api.bean.futures.result.OrderResult;
+import com.okcoin.commons.okex.open.api.config.APIConfiguration;
+import com.okcoin.commons.okex.open.api.enums.FuturesTransactionTypeEnum;
+import com.okcoin.commons.okex.open.api.service.futures.FuturesMarketAPIService;
+import com.okcoin.commons.okex.open.api.service.futures.FuturesTradeAPIService;
+import com.okcoin.commons.okex.open.api.service.futures.impl.FuturesMarketAPIServiceImpl;
+import com.okcoin.commons.okex.open.api.service.futures.impl.FuturesTradeAPIServiceImpl;
+import com.okcoin.commons.okex.open.api.utils.OrderIdUtils;
 import interfaces.Instrument;
+import interfaces.RequestResponse;
+import okhttp3.WebSocket;
+import okio.ByteString;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -33,13 +41,14 @@ import java.util.logging.Logger;
 import static java.lang.System.currentTimeMillis;
 
 
-public class TargetEventsClient implements LoginCallback, AccountStateEventListener, OrderBookEventListener,
-        StreamFailureListener, OrderEventListener, InstructionRejectedEventListener, ExecutionEventListener, SessionDisconnectedListener,
-        PositionEventListener, HeartbeatEventListener {
+public class TargetEventsClient {
     private String Exchange;
-    //Lmax variables
+
+    //Okex variables
     private List<Instrument> InstrumentList;
-    private Session currentSession;
+    private static APIConfiguration config = new APIConfiguration();
+    private static FuturesMarketAPIService marketAPIService;
+    private static final WebSocketClient webSocketClient = new WebSocketClient();
 
     //Trading state variables
     HashMap<String, classes.trading.Order> OrdersState = new HashMap<>();
@@ -59,210 +68,231 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
     private OrdersSnapshotMessage currentOrderSnapshotMessage = new OrdersSnapshotMessage();
 
     //Logger variables
-    private Logger trclog = Logger.getLogger(TargetEventsClient.class.getName());
+    private static Logger trclog = Logger.getLogger(TargetEventsClient.class.getName());
 
     //Locker for update orders on start
     boolean orderLocker = false;
 
     //Connector run type
-    private RunType ConnectorType;
+    private static RunType ConnectorType;
 
-    public TargetEventsClient(List<Instrument> InstrumentList, String Exchange, RunType ConnectorType){
+    public TargetEventsClient(List<Instrument> InstrumentList, String Exchange, RunType ConnectorType, APIConfiguration config){
         this.Exchange = Exchange;
         this.InstrumentList=InstrumentList;
         this.currentBalanceMessage = new BalanceMessage(this.Exchange);
         this.currentSingleOrderMessage = new SingleOrderMessage();
         this.ConnectorType=ConnectorType;
+        config = config;
 
     }
-
 
     public void setWsController(ServerWSController wsController) {
         this.wsController = wsController;
         //currentExchangeStorage.setWsController(wsController);
     }
-    public Session getLmaxSession(){
-        return this.currentSession;
-    }
 
-    @Override
-    public void onLoginSuccess(final Session session)
-    {
-        trclog.log(Level.INFO,"Logged in, subscribing");
-        trclog.log(Level.INFO,"My accountId is: " + session.getAccountDetails().getAccountId()+" "+session.getAccountDetails().toString());
-        //Register LMAX listeners
-        if(ConnectorType == RunType.FULLTRADE || ConnectorType==RunType.ALL) {
-            session.registerAccountStateEventListener(this);
-            session.registerStreamFailureListener(this);
-            session.registerOrderEventListener(this);
-            session.registerInstructionRejectedEventListener(this);
-            session.registerExecutionEventListener(this);
-            session.registerPositionEventListener(this);
-            session.registerHeartbeatListener(this);
 
-            //Subscribe to messages
-            subscribe(session, new PositionSubscriptionRequest(), "Positions");
-            subscribe(session, new AccountSubscriptionRequest(), "Account Updates");
-            subscribe(session, new HeartbeatSubscriptionRequest(),"HeartBeat");
-        }
-        if(ConnectorType==RunType.ALL || ConnectorType==RunType.FULLMARKET) {
-            session.registerOrderBookEventListener(this);
-            for(Instrument instrument : this.InstrumentList) {
-                subscribeToInstrument(session, Long.parseLong(instrument.GetExchangeSymbol()));
+   public void login(JSONObject Credentials) throws JSONException {
+       String url = Credentials.getString("url");
+       String apiKey = Credentials.getString("apiKey");
+       String passphrase = Credentials.getString("passphrase");
+       String secretKey = Credentials.getString("secretKey");
+
+       WebSocketConfig.loginConnect(webSocketClient, url, apiKey, passphrase, secretKey);
+       try {
+           Thread.sleep(10000);
+           if (webSocketClient.getIsLogin()) {
+
+               if(ConnectorType == RunType.FULLTRADE || ConnectorType==RunType.ALL) {
+                   privateStream();
+               }
+               if(ConnectorType==RunType.ALL || ConnectorType==RunType.FULLMARKET) {
+                   publicStream();
+               }
+               publicStream();
+
+           }
+           else{
+               trclog.log(Level.WARNING,"Error while authenticating in.");
+               return;
+           }
+
+       } catch (InterruptedException e) {
+           e.printStackTrace();
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+
+   }
+
+    public static List<String> toList(String items, String flag) {
+        List<String> items_list = new ArrayList<String>();
+        Gson gson = new Gson();
+        JsonArray item_json_array = gson.fromJson(items, JsonArray.class);
+
+        for (int i = 0; i < item_json_array.size(); i++) {
+            JsonObject instrument_json_object = item_json_array.get(i).getAsJsonObject();
+            if (instrument_json_object.has(flag)) {
+                String data = instrument_json_object.get(flag).toString();
+                data = data.substring(1, data.length() - 1);
+                items_list.add(data);
             }
         }
-
-        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                try
-                {
-                    int storeTime = 10;
-                    trclog.log(Level.INFO,"Sending:"+currentOrderSnapshotMessage.getClass().toString()+": "+currentOrderSnapshotMessage.toString());
-                    while (true)
-                    {
-                            //wsController.cleanOldTrashOrders(10);
-                        Thread.sleep(storeTime * 2000);
-                    }
-                }
-                catch (Exception e)
-                {
-                    trclog.log(Level.WARNING,e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        }, 1L, 1L, TimeUnit.SECONDS);
-        this.currentSession = session;
-        session.start();
+        return items_list;
     }
 
+    public static List<String> getSymbolEndpoint(String instrument){
+        marketAPIService = new FuturesMarketAPIServiceImpl(config);
+        List<Instruments> instruments = null;
+        List<Currencies> currencies = null;
+        List<String> resultList = new ArrayList<String>();
+
+        switch(instrument){
+            case "instrument":
+                instruments = marketAPIService.getInstruments();
+                resultList = toList(JSON.toJSONString(instruments), "instrument_id");
+                break;
+            case "currency":
+                currencies = marketAPIService.getCurrencies();
+                resultList = toList(JSON.toJSONString(currencies), "name");
+                break;
+            default:
+                trclog.log(Level.WARNING,"Symbol endpoint could'nt be specified.");
+        }
+        return resultList;
+    }
+
+    public static void privateStream(){
+        try{
+            String streamType[] = {"futures/position", "futures/order", "futures/account"};
+
+            List<String> instruments = getSymbolEndpoint("instrument");
+            List<String> order_position_subscription = new ArrayList<String>();
+            for(String instrument: instruments){
+                order_position_subscription.add(streamType[0] + ":" + instrument);
+                order_position_subscription.add(streamType[1] + ":" + instrument);
+            }
+
+            List<String> currencies = getSymbolEndpoint("currency");
+            List<String> account_subscription = new ArrayList<String>();
+            for(String currency: currencies){
+                account_subscription.add(streamType[2] + ":" + currency);
+            }
+            trclog.log(Level.INFO,"Subscribing to private stream.");
+            webSocketClient.subscribe(order_position_subscription);
+            try {
+                Thread.sleep(10000000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            webSocketClient.subscribe(account_subscription);
+            try {
+                Thread.sleep(10000000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }catch(Exception e){
+            trclog.log(Level.WARNING,"Private stream subscription error.");
+        }
+    }
+
+    public static void publicStream() {
+        try {
+            String streamType = "futures/ticker";
+            List<String> instruments = getSymbolEndpoint("instrument");
+            List<String> ticker_subscription = new ArrayList<String>();
+            for (String instrument : instruments) {
+                ticker_subscription.add(streamType + ":" + instrument);
+            }
+            trclog.log(Level.INFO, "Subscribing to public stream.");
+            webSocketClient.subscribe(ticker_subscription);
+            try {
+                Thread.sleep(10000000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        } catch (Exception e) {
+            trclog.log(Level.WARNING, "Public stream subscription error.");
+        }
+    }
 
     public void CancelOrder(classes.trading.Order order){
-        currentSession.cancelOrder(new CancelOrderRequest(Long.parseLong(order.getExchangeSymbol()),order.getExchangeID()), new OrderCallback() {
-            @Override
-            public void onSuccess(String s) {
-
-            }
-
-            @Override
-            public void onFailure(FailureResponse failureResponse) {
-
-            }
-        });
+        FuturesTradeAPIService tradeAPIService = new FuturesTradeAPIServiceImpl(config);
+        tradeAPIService.cancelOrder( order.getInstructionKey(), Long.parseLong( order.getExchangeID()));
+        trclog.log(Level.INFO, "Cancelled order");
     }
 
-    public void SendOrder(classes.trading.Order limitOrder){
+    public String getOrderResult(String order) {
+        Gson gson = new Gson();
+        JsonArray item_json_array = gson.fromJson(order, JsonArray.class);
+        for (int i = 0; i < item_json_array.size(); i++) {
+            JsonObject instrument_json_object = item_json_array.get(i).getAsJsonObject();
+            if (instrument_json_object.has("order_id")) {
+                String data = instrument_json_object.get("order_id").toString();
+                data = data.substring(1, data.length() - 1);
+                return data;
+
+            }
+        }
+        return null;
+    }
+
+    public void SendOrder(classes.trading.Order limitOrder) {
         //Convert order params in current_exchange format
-        FixedPointNumber limitPrice = FixedPointNumber.valueOf(limitOrder.getPrice().toString());
+        Double limitPrice = Double.valueOf(limitOrder.getPrice().toString());
         double lSize = Math.abs(limitOrder.getSize());
-        if(limitOrder.getSide() == OrderSide.SELL){
-            lSize=lSize*(-1);
+        if (limitOrder.getSide() == OrderSide.SELL) {
+            lSize = lSize * (-1);
         }
-        FixedPointNumber limitSize = FixedPointNumber.valueOf(String.valueOf(lSize));
-        //trclog.log(Level.INFO, "Order exchange symbol: " + limitOrder.getExchangeSymbol());
-        //trclog.log(Level.INFO, "Order user symbol: " + limitOrder.getUserSymbol());
-        //Place order and get response from exchange with order ID or instructionID(LMAX)
-        if(limitOrder.getType() == OrderType.LIMIT) {
-            currentSession.placeLimitOrder(new LimitOrderSpecification(Long.parseLong(limitOrder.getExchangeSymbol()), limitPrice
-                    , limitSize, TimeInForce.GOOD_TIL_CANCELLED), new OrderCallback() {
-                @Override
-                public void onSuccess(String instructionId) {
+        try {
+            Double limitSize = Double.valueOf(String.valueOf(lSize));
+            FuturesTradeAPIService tradeAPIService = new FuturesTradeAPIServiceImpl(config);
+            Order order = new Order();
+            order.setClient_oid(OrderIdUtils.generator());
+            order.setType(FuturesTransactionTypeEnum.OPEN_SHORT.code());
+            order.setinstrument_id("BTC-USD-190906");
+            order.setSize(1);
+            order.setMatch_price(0);
+            order.setLeverage(20D);
+            order.setPrice(10000D);
+            OrderResult Orderresult = tradeAPIService.order(order);
+            String instructionId = getOrderResult(JSON.toJSONString(Orderresult));
 
-                    trclog.log(Level.INFO, "Order accepted by exchange: " + instructionId);
+            try {
+                JSONObject successedId = new JSONObject();
+                successedId.put("instructionKey", limitOrder.getInstructionKey());
+                successedId.put("exchangeId", instructionId);
+                InfoMessage response = new InfoMessage("{" + limitOrder.getInstructionKey() + ":" +
+                        instructionId + "}");
+                response.setContent(successedId.toString());
+                response.setInfoType(InfoType.ORDER_MANAGEMENT);
+                wsController.SendInfoPointMessage(response);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-                    //Send relation to client for information
-                    try {
-                        JSONObject successedId = new JSONObject();
-                        successedId.put("instructionKey", limitOrder.getInstructionKey());
-                        successedId.put("exchangeId", instructionId);
-                        InfoMessage response = new InfoMessage("{" + limitOrder.getInstructionKey() + ":" +
-                                instructionId + "}");
-                        response.setContent(successedId.toString());
-                        response.setInfoType(InfoType.ORDER_MANAGEMENT);
-                        wsController.SendInfoPointMessage(response);
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
-                    while(true) {
-                        List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
-                        trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
-                        limitOrder.setExchangeID(instructionId);
-                        if(sendedOrder.size() > 0){
-                            updateAfterSuccess(limitOrder,sendedOrder.get(0),instructionId);
-                            break;
-                        }else{
-                            //Insert order
-                            insretAfterSucces(limitOrder);
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        }catch(Exception e){
-                            trclog.log(Level.WARNING, e.toString());
-                        }
-                    }
+            while (true) {
+                List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
+                trclog.log(Level.INFO, "Order check " + sendedOrder.toString());
+                limitOrder.setExchangeID(instructionId);
+                if (sendedOrder.size() > 0) {
+                    updateAfterSuccess(limitOrder, sendedOrder.get(0), instructionId);
+                    break;
                 }
-
-                @Override
-                public void onFailure(FailureResponse failureResponse) {
-                    //Log and sending failure response to client
-                    trclog.log(Level.WARNING, failureResponse.toString());
-                    wsController.SendInfoPointMessage(new InfoMessage("{\"error\":\""+failureResponse.toString()+"\"}"));
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                    trclog.log(Level.WARNING, e.toString());
                 }
-            });
-        } else if(limitOrder.getType()==OrderType.MARKET){
-            currentSession.placeMarketOrder(new MarketOrderSpecification(Long.parseLong(limitOrder.getExchangeSymbol())
-                    , limitSize, TimeInForce.FILL_OR_KILL), new OrderCallback() {
-                @Override
-                public void onSuccess(String instructionId) {
-                    trclog.log(Level.INFO, "Order accepted by exchange: " + instructionId);
-
-                    //Send relation to client for information
-                    try {
-                        JSONObject successedId = new JSONObject();
-                        successedId.put("instructionKey", limitOrder.getInstructionKey());
-                        successedId.put("exchangeId", instructionId);
-                        InfoMessage response = new InfoMessage("{" + limitOrder.getInstructionKey() + ":" +
-                                instructionId + "}");
-                        response.setContent(successedId.toString());
-                        response.setInfoType(InfoType.ORDER_MANAGEMENT);
-                        wsController.SendInfoPointMessage(response);
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-
-
-                    while(true) {
-                        List<EOrder> sendedOrder = wsController.getOrderByExchangeId(instructionId);
-                        trclog.log(Level.INFO,"Order check "+sendedOrder.toString());
-                        if(sendedOrder.size() > 0){
-                            trclog.log(Level.INFO,"Order found "+sendedOrder.toString());
-                            updateAfterSuccess(limitOrder,sendedOrder.get(0),instructionId);
-                            break;
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        }catch(Exception e){
-                            trclog.log(Level.WARNING, e.toString());
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(FailureResponse failureResponse) {
-                    //Log and sending failure response to client
-                    trclog.log(Level.WARNING, failureResponse.toString());
-                    wsController.SendInfoPointMessage(new InfoMessage(failureResponse.toString()));
-                }
-            });
+            }
+        } catch (Exception e) {
+            trclog.log(Level.WARNING, "Error while processing order");
+            wsController.SendInfoPointMessage(new InfoMessage("{\"error\":\"" + e.toString() + "\"}"));
         }
     }
 
-    private void insretAfterSucces(classes.trading.Order order){
-
-    }
 
     private void updateAfterSuccess(classes.trading.Order successedOrder, EOrder eOrder,String instructionId){
         //InfoMessage iMsg= new InfoMessage("LMAX responded, order found id DATABASE"+eOrder.toString()+" user symbol "+successedOrder.getUserSymbol());
@@ -304,38 +334,22 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         this.orderLocker = orderLocker;
     }
 
-    @Override
-    public void notifySessionDisconnected()
-    {
-        trclog.log(Level.WARNING,"Session disconnected");
-    }
 
-
-    @Override
-    public void notifyStreamFailure(Exception e)
-    {
-        trclog.log(Level.WARNING,"Error occured on the stream: "+e.getMessage());
-        e.printStackTrace(System.out);
-
-    }
-
-    @Override
     public void notify(Execution execution)
     {
         trclog.log(Level.INFO,execution.toString());
-        currentExecution.setId(String.valueOf(execution.getExecutionId()));
-        currentExecution.setOrderId(execution.getOrder().getOriginalInstructionId());
+        currentExecution.setId(String.valueOf(execution.getId()));
+        currentExecution.setOrderId(execution.getId());
         if(execution.getPrice()==null) {
             currentExecution.setPrice(0.0);//Double.parseDouble(String.valueOf(execution.getPrice().longValue())));
         }else{
             currentExecution.setPrice(Double.parseDouble(execution.getPrice().toString()));
         }
-            currentExecution.setFilled(Double.parseDouble(execution.getQuantity().toString()));
-        if(Double.parseDouble(execution.getQuantity().toString()) != 0) {
-            currentExecution.setExecuted(Double.parseDouble(execution.getPrice().toString())*Double.parseDouble(execution.getQuantity().toString()));
+            currentExecution.setFilled(Double.parseDouble(execution.getFilled().toString()));
+        if(Double.parseDouble(execution.getFilled().toString()) != 0) {
+            currentExecution.setExecuted(Double.parseDouble(execution.getPrice().toString())*Double.parseDouble(execution.getFilled().toString()));
         }
         currentExecution.setTimestamp(currentTimeMillis());
-
 
         trclog.log(Level.INFO,currentExecution.toString());
         //Send execution to client
@@ -348,58 +362,32 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
 
     }
 
-    @Override
-    public void notify(InstructionRejectedEvent instructionRejected)
-    {
-        EOrder rejectedOrder = new EOrder();
-        rejectedOrder.setExchangeId(instructionRejected.getInstructionId());
-        rejectedOrder.setStatus(OrderStatus.REJECTED);
-        wsController.insertDBRejectedFromExchange(rejectedOrder);
-        trclog.log(Level.WARNING,instructionRejected.toString());
-    }
-
-    @Override
     public void notify(long l, String s) {
         trclog.log(Level.INFO,s);
     }
 
-    @Override
-    public void notify(Order order)
+    public void notify(classes.trading.Order order)
     {
         classes.trading.Order messageOrder = new classes.trading.Order();
 
         trclog.log(Level.INFO,order.toString());
-        String orderId = order.getOriginalInstructionId();
+        String orderId = order.getExchangeID();
         messageOrder.setExchange(this.Exchange);
         messageOrder.setExchangeID(orderId);
-        messageOrder.setExchangeSymbol(String.valueOf(order.getInstrumentId()));
-        messageOrder.setFilled(Math.abs(Double.parseDouble(order.getFilledQuantity().toString())));
-        messageOrder.setSize(Math.abs(Double.parseDouble(order.getQuantity().toString())));
-        messageOrder.setCancelled_qty(Double.parseDouble(order.getCancelledQuantity().toString()));
+        messageOrder.setExchangeSymbol(String.valueOf(order.getExchangeSymbol()));
+        messageOrder.setFilled(Math.abs(Double.parseDouble(order.getFilled().toString())));
+        messageOrder.setSize(Math.abs(Double.parseDouble(order.getSize().toString())));
+        messageOrder.setCancelled_qty(Double.parseDouble(order.getCancelled_qty().toString()));
         messageOrder.setLastUpdate(currentTimeMillis());
-        if(Double.parseDouble(order.getQuantity().toString()) < 0){
+        if(Double.parseDouble(order.getSize().toString()) < 0){
             messageOrder.setSide(OrderSide.SELL);
         }else{
             messageOrder.setSide(OrderSide.BUY);
         }
 
-       if(order.getOrderType() == com.lmax.api.order.OrderType.LIMIT){
-           messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
-       }else {
-           messageOrder.setPrice(Double.parseDouble(order.getStopReferencePrice().toString()));
-       }
-       messageOrder.setExecuted(messageOrder.getFilled()*messageOrder.getPrice());
-       /* if(order.getLimitPrice()==null){
-
-            if(order.getStopReferencePrice() == null){
-                //messageOrder.setPrice(Double.parseDouble(order.get.toString()));
-            }
-        }else{
-            messageOrder.setPrice(Double.parseDouble(order.getLimitPrice().toString()));
-        }*/
-
+        messageOrder.setPrice(Double.parseDouble(order.getPrice().toString()));
+        messageOrder.setExecuted(messageOrder.getFilled()*messageOrder.getPrice());
         messageOrder.setStatus(detectOrderStatus(messageOrder,false));
-
         EOrder exchangeOrder = new EOrder("",messageOrder.getExchangeID(),"",
                 messageOrder.getPrice(),messageOrder.getSize(),messageOrder.getSide());
         exchangeOrder.setFilled(messageOrder.getFilled());
@@ -409,20 +397,11 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
         exchangeOrder.setExecuted_price(messageOrder.getPrice());
         exchangeOrder.setExecuted(messageOrder.getExecuted());
 
-        //exchangeOrder.setExecuted(messageOrder.getExecuted());
+        synchronized (wsController.orderRepository) {
+            wsController.updateDBorderFromexchange(exchangeOrder);
+        }
 
-        //while(true) {
-           //if(!isOrderLocker()) {
-               //setOrderLocker(true);
-               synchronized (wsController.orderRepository) {
-                   wsController.updateDBorderFromexchange(exchangeOrder);
-               }
-               //setOrderLocker(false);
-          //     break;
-          // }else{
-               trclog.log(Level.INFO,"Locked in order notify");
-          // }
-       // }
+        trclog.log(Level.INFO,"Locked in order notify");
 
         trclog.log(Level.INFO,messageOrder.toString());
 
@@ -432,109 +411,36 @@ public class TargetEventsClient implements LoginCallback, AccountStateEventListe
 
     }
 
-    @Override
-    public void onLoginFailure(FailureResponse failureResponse)
-    {
-        trclog.log(Level.WARNING,"Login Failed: " + failureResponse);
-    }
 
-    public void notify(final OrderBookEvent orderBookEvent)
-    {
-        double Ask = 0;
-        double Bid = 0;
-        double Ask_Size = 0;
-        double Bid_Size = 0;
-        List<PricePoint> Asks=orderBookEvent.getAskPrices();
-        List<PricePoint> Bids=orderBookEvent.getBidPrices();
-        if(Asks.size()>0){
-            Ask = Double.parseDouble(Asks.get(0).getPrice().toString());
-            Ask_Size = Double.parseDouble(Asks.get(0).getQuantity().toString());
-        }
-        if(Bids.size()>0){
-            Bid = Double.parseDouble(Bids.get(0).getPrice().toString());
-            Bid_Size = Double.parseDouble(Bids.get(0).getQuantity().toString());
-        }
-        long instrument_id = orderBookEvent.getInstrumentId();
-        String message = String.valueOf(instrument_id)+", ask: "+String.valueOf(Ask)+", bid: "+String.valueOf(Bid);
-        //trclog.log(Level.INFO,orderBookEvent.toString());
-        currentBBOMessage.setAsk(Ask);
-        currentBBOMessage.setBid(Bid);
-        currentBBOMessage.setAsk_size(Ask_Size);
-        currentBBOMessage.setBid_size(Bid_Size);
-        currentBBOMessage.setInstrument(String.valueOf(instrument_id));
-        currentBBOMessage.setTimestamp(orderBookEvent.getTimeStamp());
-        wsController.SendBBOPointMessage(currentBBOMessage);
-    }
+//    @Override
+//    public void notify()
+//    {
+//        double Ask = 0;
+//        double Bid = 0;
+//        double Ask_Size = 0;
+//        double Bid_Size = 0;
+//        String instrument_id = "";
+//
+//        currentBBOMessage.setAsk(Ask);
+//        currentBBOMessage.setBid(Bid);
+//        currentBBOMessage.setAsk_size(Ask_Size);
+//        currentBBOMessage.setBid_size(Bid_Size);
+//        currentBBOMessage.setInstrument(String.valueOf(instrument_id));
+//        currentBBOMessage.setTimestamp(Long.valueOf(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())));
+//        wsController.SendBBOPointMessage(currentBBOMessage);
+//    }
 
-    @Override
-    public void notify(final PositionEvent positionEvent)
-    {
-        trclog.log(Level.INFO,positionEvent.toString());
-    }
-
-    public void notify(final AccountStateEvent accountStateEvent)
-    {
-        Map<String, Wallet> Wallets  = accountStateEvent.getCurrencyWallets();
-        String Symbol="";
-        Double Cash=0.0;
-        Double Credit=0.0;
-        this.currentBalanceMessage.CleanBalance();
-        for(Map.Entry<String,Wallet> entry : Wallets.entrySet())
-        {
-             Symbol = entry.getKey();
-             Cash = Double.parseDouble(entry.getValue().getCash().toString());
-             Credit = Double.parseDouble(entry.getValue().getCredit().toString());
-             this.currentBalanceMessage.setSymbolBalance(Symbol,Cash+Credit);
-        }
-        currentBalanceMessage.setExchange(this.Exchange);
-        //wsController.SendBalancePointMessage(this.currentBalanceMessage);
-    }
-
-    private void subscribe(final Session session, final SubscriptionRequest request, final String subscriptionDescription)
-    {
-        session.subscribe(request, new Callback()
-        {
-            public void onSuccess()
-            {
-
-                trclog.log(Level.INFO,"Subscribed to " + subscriptionDescription);
-            }
-
-            public void onFailure(final FailureResponse failureResponse)
-            {
-                trclog.log(Level.WARNING,"Failed to subscribe to " + subscriptionDescription + ": %s%n", failureResponse);
-            }
-        });
-    }
-
-
-    private void subscribeToInstrument(final Session session, final long instrumentId)
-    {
-        session.subscribe(new OrderBookSubscriptionRequest(instrumentId), new Callback()
-        {
-            public void onSuccess()
-            {
-                trclog.log(Level.INFO,"Subscribed to instrument "+ String.valueOf(instrumentId));
-            }
-
-            public void onFailure(final FailureResponse failureResponse)
-            {
-                trclog.log(Level.WARNING,"Failed to subscribe to instrument %"+String.valueOf(instrumentId)+" "+failureResponse);
-            }
-        });
-    }
-
-    private OrderStatus detectOrderStatus(classes.trading.Order LmaxOrderInstruction,boolean isRejected){
+    private OrderStatus detectOrderStatus(classes.trading.Order okexOrderInstruction,boolean isRejected){
         OrderStatus orderStatus = OrderStatus.UNKNOWN;
-        //if(Double.parseDouble(LmaxOrderInstruction.getCancelledQuantity().toString()) > 0)
-        if(Math.abs(LmaxOrderInstruction.getCancelled_qty()) > 0)
+        //if(Double.parseDouble(okexOrderInstruction.getCancelledQuantity().toString()) > 0)
+        if(Math.abs(okexOrderInstruction.getCancelled_qty()) > 0)
         {
             orderStatus=OrderStatus.CANCELLED;
-        }else if(LmaxOrderInstruction.getFilled().equals(LmaxOrderInstruction.getSize())){//LmaxOrderInstruction.getQuantity().longValue() == LmaxOrderInstruction.getFilledQuantity().longValue()){
+        }else if(okexOrderInstruction.getFilled().equals(okexOrderInstruction.getSize())){//okexOrderInstruction.getQuantity().longValue() == okexOrderInstruction.getFilledQuantity().longValue()){
             orderStatus=OrderStatus.FULL_FILLED;
-        }else if(LmaxOrderInstruction.getFilled()>0){ //(Double.parseDouble(LmaxOrderInstruction.getFilledQuantity().toString()) > 0){
+        }else if(okexOrderInstruction.getFilled()>0){ //(Double.parseDouble(okexOrderInstruction.getFilledQuantity().toString()) > 0){
             orderStatus = OrderStatus.PART_FILLED;
-        } else if(LmaxOrderInstruction.getFilled()==0){//.getFilledQuantity().longValue() == 0){
+        } else if(okexOrderInstruction.getFilled()==0){//.getFilledQuantity().longValue() == 0){
             orderStatus=OrderStatus.ACCEPTED;
         }
         if(isRejected){

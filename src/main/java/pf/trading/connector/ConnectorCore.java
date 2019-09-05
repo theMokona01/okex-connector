@@ -61,11 +61,11 @@ public class ConnectorCore {
             }
         });
 
-
     }
 
     public static void logLoadedBeans(ApplicationContext AppContext){
         String[] beans = AppContext.getBeanDefinitionNames();
+        System.out.println(beans);
         Arrays.sort(beans);
         for (String bean : beans) {
             trclog.log(Level.INFO,"Loaded bean "+bean);

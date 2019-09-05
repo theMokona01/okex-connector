@@ -1,12 +1,21 @@
 package Exchange;
 
-import com.lmax.api.LmaxApi;
-import com.lmax.api.LmaxApiException;
-import com.lmax.api.account.LoginRequest;
+import com.alibaba.fastjson.JSON;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.okcoin.commons.okex.open.api.bean.futures.result.Instruments;
+import com.okcoin.commons.okex.open.api.bean.futures.result.ServerTime;
+import com.okcoin.commons.okex.open.api.config.APIConfiguration;
+import com.okcoin.commons.okex.open.api.service.GeneralAPIService;
+import com.okcoin.commons.okex.open.api.service.futures.FuturesMarketAPIService;
+import com.okcoin.commons.okex.open.api.service.futures.impl.FuturesMarketAPIServiceImpl;
+import com.okcoin.commons.okex.open.api.service.futures.impl.GeneralAPIServiceImpl;
 import interfaces.ExchangeConnector;
 import interfaces.Instrument;
 import interfaces.Order;
 import interfaces.RequestResponse;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -18,8 +27,10 @@ public class EConnector implements ExchangeConnector {
     public TargetEventsClient Connector;
     private String Exchange;
     //Logger variables
-    private Logger trclog;
-
+    private static Logger trclog;
+    //okex api variables
+    public static APIConfiguration config = new APIConfiguration();
+    private static FuturesMarketAPIService marketAPIService;
 
     @Override
     public void DoInitConnector() {
@@ -31,12 +42,13 @@ public class EConnector implements ExchangeConnector {
         System.out.println("Connector bean destroy");
     }
 
-    public EConnector(String url, String login, String password, String Exchange, String[] Instruments, RunType connectorType) {
+    public EConnector(String url, String apiKey, String secretKey, String passphrase, String Exchange,List<String> Instruments, RunType connectorType) {
         try {
             JSONObject Credentials = new JSONObject()
                     .put("url", url)
-                    .put("login", login)
-                    .put("password", password);
+                    .put("apiKey", apiKey)
+                    .put("secretKey", secretKey)
+                    .put("passphrase", passphrase);
             this.Exchange=Exchange;
             InitConnector(Credentials,Instruments,connectorType);
             trclog = Logger.getLogger(EConnector.class.getName());
@@ -47,37 +59,76 @@ public class EConnector implements ExchangeConnector {
     }
 
     @Override
-    public ExchangeConnector InitConnector(JSONObject Credentials,String[] Instruments,RunType connectorType) {
+    public ExchangeConnector InitConnector(JSONObject Credentials,List<String> Instruments,RunType connectorType) {
         try {
-            if (Credentials.has("url") && Credentials.has("login") && Credentials.has("password")) {
+            if (Credentials.has("url") && Credentials.has("apiKey") && Credentials.has("secretKey") && Credentials.has("passphrase")) {
                 try {
-                    String url = Credentials.getString("url");
-                    String username = Credentials.getString("login");
-                    String password = Credentials.getString("password");
-                    LmaxApi lmaxApiAccount = new LmaxApi(url);
 
+                    //API Configuration
+                    config_api_login(Credentials);
+                    //Get instrument endpoint
+                    Instruments = getInstruments(Credentials);
                     List<Instrument> InstrumentList = new ArrayList<>();
                     for(String instrument: Instruments){
                         OKEXInstrument InitInstrument = new OKEXInstrument();
                         InitInstrument.ExchangeSymbol=instrument;
                         InstrumentList.add(InitInstrument);
                     }
-
-                    //Enter into exchange
-                    LoginRequest.ProductType productType = LoginRequest.ProductType.valueOf("CFD_DEMO");
-                    Connector = new TargetEventsClient(InstrumentList,this.Exchange,connectorType);
-                    //this need run in CoreThread
-                    new Thread(() -> lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector)).start();
-                    //lmaxApiAccount.login(new LoginRequest(username, password, productType), Connector);
+                    //Initialize Connector
+                    Connector = new TargetEventsClient(InstrumentList,this.Exchange,connectorType, this.config);
+                    //Start Process
+                    new Thread(() -> {
+                        try {
+                            Connector.login(Credentials);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
 
                 }catch (Exception e){
                     e.printStackTrace();
                 }
             }
-        }catch (LmaxApiException e){
+        }catch (Exception e){
             e.printStackTrace();
         }
         return this;
+    }
+
+    public static List<String> getInstruments(JSONObject Credentials) throws Exception{
+
+        marketAPIService = new FuturesMarketAPIServiceImpl(config);
+        List<Instruments> instruments = marketAPIService.getInstruments();
+        return toList(JSON.toJSONString(instruments));
+    }
+
+    public static List<String> toList(String items) {
+
+        List<String> items_list = new ArrayList<String>();
+        Gson gson = new Gson();
+        JsonArray item_json_array = gson.fromJson(items, JsonArray.class);
+
+        for (int i = 0; i < item_json_array.size(); i++) {
+            JsonObject instrument_json_object = item_json_array.get(i).getAsJsonObject();
+            if (instrument_json_object.has("instrument_id")) {
+                String data = instrument_json_object.get("instrument_id").toString();
+                data = data.substring(1, data.length() - 1);
+                items_list.add(data);
+            }
+        }
+        return items_list;
+    }
+
+    private static void config_api_login(JSONObject Credentials) throws JSONException {
+        config.setEndpoint(Credentials.getString("url"));
+        config.setApiKey(Credentials.getString("apiKey"));
+        config.setSecretKey(Credentials.getString("secretKey"));
+        config.setPassphrase(Credentials.getString("passphrase"));
+
+        GeneralAPIService marketAPIService = new GeneralAPIServiceImpl(config);
+        ServerTime time = marketAPIService.getServerTime();
+        if(time==null) throw new IllegalArgumentException();
+        trclog.log(Level.INFO,"Config API Successfully Authenticated!");
     }
 
     @Override
@@ -87,7 +138,8 @@ public class EConnector implements ExchangeConnector {
     }
 
     @Override
-    public RequestResponse CancelOrder(Order order) {
+    public RequestResponse CancelOrder(classes.trading.Order order) {
+        Connector.CancelOrder(order);
         return null;
     }
 
