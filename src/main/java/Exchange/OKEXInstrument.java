@@ -2,11 +2,11 @@ package Exchange;
 
 import interfaces.Instrument;
 
-public class LMAXInstrument implements Instrument {
+public class OKEXInstrument implements Instrument {
     public String Symbol;
     public String ExchangeSymbol;
 
-    public LMAXInstrument() {
+    public OKEXInstrument() {
     }
 
     @Override

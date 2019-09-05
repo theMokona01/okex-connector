@@ -22,7 +22,6 @@ public class ConnectorCore {
     public static void main(String[] args) {
         trclog.log(Level.INFO,"Connector started");
 
-
         //Spring boot properties
         Map<String, Object> CoreServerProperties = new HashMap<>();
         //CoreServerProperties.put("server.port","8081");

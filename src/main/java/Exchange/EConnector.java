@@ -58,7 +58,7 @@ public class EConnector implements ExchangeConnector {
 
                     List<Instrument> InstrumentList = new ArrayList<>();
                     for(String instrument: Instruments){
-                        LMAXInstrument InitInstrument = new LMAXInstrument();
+                        OKEXInstrument InitInstrument = new OKEXInstrument();
                         InitInstrument.ExchangeSymbol=instrument;
                         InstrumentList.add(InitInstrument);
                     }
