@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+        <context:property-placeholder location="classpath:exchange.properties" />
+
+
+        <bean id="ExchangeConnector"
+              class="Exchange.EConnector" init-method="DoInitConnector" destroy-method="DestroyConnector">
+            <constructor-arg name="url" value="${EXCHANGE.Credentials.url}"/>
+            <constructor-arg name="login" value="${EXCHANGE.Credentials.login}"/>
+            <constructor-arg name="password" value="${EXCHANGE.Credentials.password}"/>
+            <constructor-arg name="Exchange" value="${EXCHANGE.exchange.name}"/>
+            <constructor-arg name="Instruments">
+                <list>
+                    <value>5002</value>
+                    <value>5003</value>
+                    <value>5004</value>
+                    <value>5005</value>
+                    <value>5006</value>
+                    <value>5013</value>
+                </list>
+            </constructor-arg>
+            <constructor-arg name="connectorType" value="${EXCHANGE.ConnectorType}"/>
+        </bean>
+
+</beans>
